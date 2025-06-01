@@ -884,22 +884,22 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   Widget _buildCompactGameCard(GameModel game) {
     return Container(
       width: double.infinity,
-      height: 55, // Slightly increased from 50 to fit content better
-      padding: const EdgeInsets.all(2), // Reduced padding
+      height: 85, // Increased from 55 to 85
+      padding: const EdgeInsets.all(8), // Increased padding
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(4), // Smaller radius
+        borderRadius: BorderRadius.circular(8), // Larger radius
         border: Border.all(color: Colors.blue.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.start, // Changed from center to start
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // Game name - make it smaller
+          // Game name - make it bigger
           Text(
             game.displayName,
             style: const TextStyle(
-              fontSize: 8, // Reduced from 10 to 8
+              fontSize: 12, // Increased from 8 to 12
               fontWeight: FontWeight.bold,
               color: Colors.blue,
             ),
@@ -907,28 +907,28 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
             overflow: TextOverflow.ellipsis,
           ),
           if (game.hasTeams) ...[
-            const SizedBox(height: 1), // Reduced spacing
+            const SizedBox(height: 4), // Increased spacing
             Text(
               '${_getTeamName(game.team1Id ?? '')} vs ${_getTeamName(game.team2Id ?? '')}',
               style: const TextStyle(
-                fontSize: 7, // Reduced from 9 to 7
+                fontSize: 10, // Increased from 7 to 10
                 color: Colors.black87,
               ),
-              maxLines: 2, // Allow 2 lines for team names
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ],
-          const Spacer(), // Push time to bottom
+          const Spacer(),
           if (game.scheduledTime != null) ...[
             Row(
               children: [
-                Icon(Icons.schedule, size: 6, color: Colors.grey[600]), // Smaller icon
-                const SizedBox(width: 1),
+                Icon(Icons.schedule, size: 12, color: Colors.grey[600]), // Larger icon
+                const SizedBox(width: 2),
                 Expanded(
                   child: Text(
                     game.scheduledTime!,
                     style: TextStyle(
-                      fontSize: 6, // Reduced from 8 to 6
+                      fontSize: 9, // Increased from 6 to 9
                       color: Colors.grey[600],
                     ),
                     maxLines: 1,
@@ -957,10 +957,13 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         int.parse(dateParts[0]), // day
       );
 
+      // Normalize target time format
+      final normalizedTargetTime = _normalizeTimeFormat(targetTime);
+
       // Check if this is the same slot the game is already in
       if (game.scheduledDate != null && game.scheduledTime != null) {
         final isSameDate = _isSameDate(game.scheduledDate!, targetDateTime);
-        final isSameTime = game.scheduledTime == targetTime;
+        final isSameTime = _normalizeTimeFormat(game.scheduledTime!) == normalizedTargetTime;
         if (isSameDate && isSameTime) {
           return true; // Allow dropping in the same slot (no-op)
         }
@@ -972,7 +975,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         
         if (otherGame.scheduledDate != null && otherGame.scheduledTime != null) {
           final isSameDate = _isSameDate(otherGame.scheduledDate!, targetDateTime);
-          final isSameTime = otherGame.scheduledTime == targetTime;
+          final isSameTime = _normalizeTimeFormat(otherGame.scheduledTime!) == normalizedTargetTime;
           
           if (isSameDate && isSameTime) {
             // Check if any team conflicts
@@ -1335,6 +1338,8 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         int.parse(dateParts[2]), int.parse(dateParts[1]), int.parse(dateParts[0]),
       );
 
+      // Normalize target time format
+      final normalizedTargetTime = _normalizeTimeFormat(targetTime);
       final conflictingTeams = <String>[];
       
       for (final otherGame in _allGames) {
@@ -1342,7 +1347,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         
         if (otherGame.scheduledDate != null && otherGame.scheduledTime != null) {
           final isSameDate = _isSameDate(otherGame.scheduledDate!, targetDateTime);
-          final isSameTime = otherGame.scheduledTime == targetTime;
+          final isSameTime = _normalizeTimeFormat(otherGame.scheduledTime!) == normalizedTargetTime;
           
           if (isSameDate && isSameTime) {
             if (otherGame.team1Id == game.team1Id || otherGame.team1Id == game.team2Id) {
@@ -1360,8 +1365,8 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       if (conflictingTeams.isEmpty) return 'No conflicts found';
       
       return conflictingTeams.length == 1 
-          ? '${conflictingTeams.first} is already playing at $targetTime'
-          : '${conflictingTeams.join(' and ')} are already playing at $targetTime';
+          ? '${conflictingTeams.first} is already playing at $normalizedTargetTime'
+          : '${conflictingTeams.join(' and ')} are already playing at $normalizedTargetTime';
     } catch (e) {
       return 'Error checking conflicts';
     }
@@ -1827,31 +1832,31 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
           
           // Full screen data table
           SizedBox(
-            height: timeSlots.length * 55 + 35, // Dynamic height based on time slots
+            height: timeSlots.length * 90 + 45, // Increased height for bigger cells
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
-                columnSpacing: 4, // Reduced spacing
-                horizontalMargin: 8,
-                headingRowHeight: 35, // Reduced header height
-                dataRowHeight: 55, // Match our compact cards
+                columnSpacing: 8, // Increased spacing
+                horizontalMargin: 12,
+                headingRowHeight: 45, // Increased header height
+                dataRowHeight: 90, // Increased from 55 to 90
                 headingTextStyle: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 11, // Smaller header text
+                  fontSize: 13, // Increased header text size
                 ),
                 columns: [
                   const DataColumn(
                     label: SizedBox(
-                      width: 50, // Reduced time column width
+                      width: 80, // Increased time column width
                       child: Text('Time'),
                     ),
                   ),
                   ..._resources.map((resource) => DataColumn(
                     label: SizedBox(
-                      width: 160, // Reduced court column width to fit more
+                      width: 280, // Increased court column width significantly
                       child: Text(
                         resource.name,
-                        style: const TextStyle(fontSize: 11),
+                        style: const TextStyle(fontSize: 13), // Increased text size
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1862,12 +1867,12 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                     cells: [
                       DataCell(
                         Container(
-                          width: 50,
+                          width: 80,
                           padding: const EdgeInsets.symmetric(vertical: 2),
                           child: Text(
                             timeSlot,
                             style: const TextStyle(
-                              fontSize: 10,
+                              fontSize: 12, // Increased from 10 to 12
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1875,7 +1880,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                       ),
                       ..._resources.map((resource) {
                         final game = dayGames.where((g) => 
-                          g.scheduledTime == timeSlot && g.resourceId == resource.id
+                          _normalizeTimeFormat(g.scheduledTime ?? '') == timeSlot && g.resourceId == resource.id
                         ).firstOrNull;
                         
                         return DataCell(
@@ -1911,8 +1916,8 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         
         return AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          width: 160, // Reduced width to fit more courts
-          height: 55,
+          width: 280, // Reduced width to fit more courts
+          height: 90,
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             color: hasConflicts 
@@ -1973,9 +1978,9 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                               : isHighlighted && isValid 
                                 ? Colors.green
                               : Colors.grey[400],
-                          size: 16, // Smaller icon
+                          size: 24, // Increased from 16 to 24
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
                           hasConflicts 
                               ? 'Conflict'
@@ -1988,7 +1993,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                                 : isHighlighted && isValid 
                                   ? Colors.green[700]
                                   : Colors.grey[500],
-                            fontSize: 8, // Smaller text
+                            fontSize: 12, // Increased from 8 to 12
                             fontWeight: hasConflicts ? FontWeight.bold : FontWeight.normal,
                           ),
                         ),
@@ -2042,13 +2047,13 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       data: game,
       feedback: Material(
         elevation: 8,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          width: 180, // Smaller feedback for grid
-          height: 60,
+          width: 280, // Increased to match cell width
+          height: 90, // Increased to match cell height
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.blue, width: 2),
             boxShadow: [
               BoxShadow(
@@ -2059,7 +2064,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(12), // Increased padding
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -2068,16 +2073,16 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                   'Moving: ${game.displayName}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 10,
+                    fontSize: 12, // Increased from 10 to 12
                     color: Colors.blue,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   '${_getTeamName(game.team1Id ?? '')} vs ${_getTeamName(game.team2Id ?? '')}',
-                  style: const TextStyle(fontSize: 8),
+                  style: const TextStyle(fontSize: 10), // Increased from 8 to 10
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2098,19 +2103,15 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       ),
       onDragStarted: () {
         HapticFeedback.lightImpact();
-        print('Grid drag started: ${game.displayName}');
       },
       onDragEnd: (details) {
         HapticFeedback.lightImpact();
-        print('Grid drag ended: ${game.displayName}');
       },
       onDragCompleted: () {
         HapticFeedback.mediumImpact();
-        print('Grid drag completed: ${game.displayName}');
       },
       onDraggableCanceled: (velocity, offset) {
         HapticFeedback.heavyImpact();
-        print('Grid drag canceled: ${game.displayName}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2122,7 +2123,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         }
       },
       dragAnchorStrategy: (draggable, context, position) {
-        return const Offset(90, 30); // Center of the feedback widget
+        return const Offset(140, 45); // Center of the feedback widget
       },
       child: _buildCompactGameCard(game),
     );
@@ -2142,10 +2143,13 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         int.parse(dateParts[0]), // day
       );
 
+      // Normalize target time format
+      final normalizedTargetTime = _normalizeTimeFormat(targetTime);
+
       // Check if this is the same slot the game is already in
       if (game.scheduledDate != null && game.scheduledTime != null && game.resourceId != null) {
         final isSameDate = _isSameDate(game.scheduledDate!, targetDateTime);
-        final isSameTime = game.scheduledTime == targetTime;
+        final isSameTime = _normalizeTimeFormat(game.scheduledTime!) == normalizedTargetTime;
         final isSameResource = game.resourceId == resourceId;
         if (isSameDate && isSameTime && isSameResource) {
           return true; // Allow dropping in the same slot (no-op)
@@ -2159,7 +2163,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         otherGame.scheduledTime != null &&
         otherGame.resourceId != null &&
         _isSameDate(otherGame.scheduledDate!, targetDateTime) &&
-        otherGame.scheduledTime == targetTime &&
+        _normalizeTimeFormat(otherGame.scheduledTime!) == normalizedTargetTime &&
         otherGame.resourceId == resourceId
       );
 
@@ -2173,7 +2177,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         otherGame.scheduledDate != null &&
         otherGame.scheduledTime != null &&
         _isSameDate(otherGame.scheduledDate!, targetDateTime) &&
-        otherGame.scheduledTime == targetTime &&
+        _normalizeTimeFormat(otherGame.scheduledTime!) == normalizedTargetTime &&
         (otherGame.team1Id == game.team1Id || 
          otherGame.team1Id == game.team2Id ||
          otherGame.team2Id == game.team1Id || 
@@ -2189,8 +2193,6 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   Future<void> _handleGameDropToResource(GameModel game, String targetDate, String targetTime, String resourceId) async {
     // Normalize the target time format
     final normalizedTime = _normalizeTimeFormat(targetTime);
-    
-    print('Grid drop: ${game.displayName} to $targetDate $normalizedTime resource: $resourceId');
     
     if (!_canDropGameToResource(game, targetDate, normalizedTime, resourceId)) {
       final conflictDetails = _getConflictDetails(game, targetDate, normalizedTime);
