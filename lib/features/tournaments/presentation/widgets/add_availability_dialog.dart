@@ -23,8 +23,8 @@ class _AddAvailabilityDialogState extends State<AddAvailabilityDialog> {
   final _repository = ResourceAvailabilityRepository();
   
   // Form controllers
-  TimeOfDay _startTime = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _endTime = const TimeOfDay(hour: 17, minute: 0);
+  TimeOfDay _startTime = const TimeOfDay(hour: 5, minute: 0);
+  TimeOfDay _endTime = const TimeOfDay(hour: 23, minute: 0);
   int _selectedDayOfWeek = 1; // Monday as default
   DateTime _selectedDate = DateTime.now();
   bool _isAvailable = true;

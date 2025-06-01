@@ -188,15 +188,15 @@ class ScheduleGeneratorService {
     
     if (availabilities.isEmpty) {
       print('⚠️ No availability defined for ${resource.name}! Creating default availability...');
-      // Create default availability: Monday to Friday, 9 AM to 5 PM
+      // Create default availability: Monday to Friday, 5 AM to 11 PM
       final defaultAvailabilities = <ResourceAvailabilityModel>[];
       for (int day = 1; day <= 5; day++) { // Monday to Friday
         defaultAvailabilities.add(ResourceAvailabilityModel(
           id: 'default_$day',
           resourceId: resource.id,
           dayOfWeek: day,
-          startTime: '09:00',
-          endTime: '17:00',
+          startTime: '05:00',
+          endTime: '23:00',
           isAvailable: true,
           createdAt: DateTime.now(),
         ));
@@ -211,7 +211,7 @@ class ScheduleGeneratorService {
         return true; // Include recurring availabilities
       }).toList();
       
-      print('🔧 Using default availability: Monday-Friday 9:00-17:00 for ${resource.name}');
+      print('🔧 Using default availability: Monday-Friday 5:00-23:00 for ${resource.name}');
       
       // Get existing games to avoid conflicts
       final existingGames = await _gameRepository.getResourceGames(resource.id);
