@@ -1,0 +1,61 @@
+name: teamapp3
+description: Tournament Management App built with Flutter and Supabase.
+version: 1.0.0+1
+publish_to: none
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  bloc: ^9.0.0
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^9.1.1
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+  # Supabase
+  supabase_flutter: ^2.3.4
+  # Authentication
+  google_sign_in: ^6.2.1
+  # Navigation
+  go_router: ^15.1.2
+  # UI Components
+  cached_network_image: ^3.3.1
+  image_picker: ^1.0.7
+  file_picker: ^10.1.9
+  # State Management
+  equatable: ^2.0.5
+  # Utilities
+  uuid: ^4.3.3
+  url_launcher: ^6.2.5
+  share_plus: ^11.0.0
+  # Date/Time
+  table_calendar: ^3.0.9
+  # Storage
+  shared_preferences: ^2.2.2
+  # Notifications
+  flutter_local_notifications: ^19.2.1
+  # Forms
+  formz: ^0.8.0
+  # HTTP
+  http: ^1.2.1
+  # JSON
+  json_annotation: ^4.8.1
+
+dev_dependencies:
+  bloc_test: ^10.0.0
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+  very_good_analysis: ^8.0.0
+  # Code generation
+  build_runner: ^2.4.9
+  json_serializable: ^6.7.1
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - assets/images/
+    - assets/icons/
