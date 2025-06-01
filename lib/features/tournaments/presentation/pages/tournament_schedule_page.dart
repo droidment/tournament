@@ -728,7 +728,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                       const SizedBox(height: 4),
                       Text(
                         candidateData.isNotEmpty && candidateData.first != null
-                            ? _getConflictDetails(candidateData.first!, date, time)
+                            ? '${_getDetailedConflictInfo(candidateData.first!, date, time, '')['type']}: ${_getDetailedConflictInfo(candidateData.first!, date, time, '')['message']}'
                             : 'One or more teams are already playing at this time',
                         style: TextStyle(color: Colors.red[700], fontSize: 11),
                       ),
@@ -824,7 +824,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       },
       onDraggableCanceled: (velocity, offset) {
         HapticFeedback.heavyImpact();
-        // Show detailed conflict message
+        // Show detailed guidance message instead of generic cancellation
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -834,29 +834,84 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.white),
+                      const Icon(Icons.info_outline, color: Colors.white),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Cannot move ${game.displayName}',
+                          'Could not move ${game.displayName}',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
-                    'Try dropping on a different time slot or court',
+                    'Possible reasons:',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '• Dropped outside a valid time slot',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                        Text(
+                          '• Team already playing at that time',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                        Text(
+                          '• Court already booked at that time',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.lightbulb_outline, color: Colors.yellow, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Try: Drop on a green-highlighted time slot or look for "Available" cells',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white.withOpacity(0.9),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.orange,
               behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 4),
+              duration: const Duration(seconds: 5),
             ),
           );
         }
@@ -1001,7 +1056,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
     final normalizedTime = _normalizeTimeFormat(targetTime);
     
     if (!_canDropGame(game, targetDate, normalizedTime)) {
-      final conflictDetails = _getConflictDetails(game, targetDate, normalizedTime);
+      final conflictInfo = _getDetailedConflictInfo(game, targetDate, normalizedTime, '');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1023,17 +1078,38 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  conflictDetails,
+                  '${conflictInfo['type']}: ${conflictInfo['message']}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withOpacity(0.9),
                   ),
                 ),
+                if (conflictInfo['details'] != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    conflictInfo['details'].toString(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+                if (conflictInfo['suggestion'] != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Suggestion: ${conflictInfo['suggestion'].toString()}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.8),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
               ],
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 6), // Longer duration for detailed message
           ),
         );
       }
@@ -1328,19 +1404,49 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
     );
   }
 
-  // Enhanced conflict detection with specific details
-  String _getConflictDetails(GameModel game, String targetDate, String targetTime) {
+  // Enhanced conflict detection with detailed explanations
+  Map<String, dynamic> _getDetailedConflictInfo(GameModel game, String targetDate, String targetTime, String resourceId) {
     try {
       final dateParts = targetDate.split('/');
-      if (dateParts.length != 3) return 'Invalid date format';
+      if (dateParts.length != 3) {
+        return {
+          'hasConflict': true,
+          'type': 'Invalid Date',
+          'message': 'Invalid date format provided'
+        };
+      }
       
       final targetDateTime = DateTime(
         int.parse(dateParts[2]), int.parse(dateParts[1]), int.parse(dateParts[0]),
       );
-
-      // Normalize target time format
       final normalizedTargetTime = _normalizeTimeFormat(targetTime);
+      
+      // Check for resource conflicts first (court double-booking)
+      final resourceConflictGame = _allGames.where(
+        (otherGame) => 
+          otherGame.id != game.id &&
+          otherGame.scheduledDate != null &&
+          otherGame.scheduledTime != null &&
+          otherGame.resourceId != null &&
+          _isSameDate(otherGame.scheduledDate!, targetDateTime) &&
+          _normalizeTimeFormat(otherGame.scheduledTime!) == normalizedTargetTime &&
+          otherGame.resourceId == resourceId,
+      ).firstOrNull;
+      
+      if (resourceConflictGame != null) {
+        final resourceName = _resourceMap[resourceId]?.name ?? 'this court';
+        return {
+          'hasConflict': true,
+          'type': 'Court Double-Booking',
+          'message': '$resourceName is already booked at $normalizedTargetTime',
+          'details': 'Conflicting game: ${resourceConflictGame.displayName} (${_getTeamName(resourceConflictGame.team1Id ?? '')} vs ${_getTeamName(resourceConflictGame.team2Id ?? '')})',
+          'suggestion': 'Try a different time slot or court'
+        };
+      }
+      
+      // Check for team conflicts (teams playing multiple games simultaneously)
       final conflictingTeams = <String>[];
+      final conflictingGames = <GameModel>[];
       
       for (final otherGame in _allGames) {
         if (otherGame.id == game.id) continue;
@@ -1350,25 +1456,60 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
           final isSameTime = _normalizeTimeFormat(otherGame.scheduledTime!) == normalizedTargetTime;
           
           if (isSameDate && isSameTime) {
+            bool hasTeamConflict = false;
+            
             if (otherGame.team1Id == game.team1Id || otherGame.team1Id == game.team2Id) {
               final teamName = _getTeamName(otherGame.team1Id ?? '');
-              if (!conflictingTeams.contains(teamName)) conflictingTeams.add(teamName);
+              if (!conflictingTeams.contains(teamName)) {
+                conflictingTeams.add(teamName);
+                hasTeamConflict = true;
+              }
             }
             if (otherGame.team2Id == game.team1Id || otherGame.team2Id == game.team2Id) {
               final teamName = _getTeamName(otherGame.team2Id ?? '');
-              if (!conflictingTeams.contains(teamName)) conflictingTeams.add(teamName);
+              if (!conflictingTeams.contains(teamName)) {
+                conflictingTeams.add(teamName);
+                hasTeamConflict = true;
+              }
+            }
+            
+            if (hasTeamConflict) {
+              conflictingGames.add(otherGame);
             }
           }
         }
       }
-
-      if (conflictingTeams.isEmpty) return 'No conflicts found';
       
-      return conflictingTeams.length == 1 
-          ? '${conflictingTeams.first} is already playing at $normalizedTargetTime'
-          : '${conflictingTeams.join(' and ')} are already playing at $normalizedTargetTime';
+      if (conflictingTeams.isNotEmpty) {
+        final teamList = conflictingTeams.length == 1 
+            ? conflictingTeams.first
+            : '${conflictingTeams.take(conflictingTeams.length - 1).join(', ')} and ${conflictingTeams.last}';
+            
+        final gameList = conflictingGames.map((g) {
+          final court = _resourceMap[g.resourceId]?.name ?? 'Unknown Court';
+          return '${g.displayName} on $court';
+        }).join(', ');
+        
+        return {
+          'hasConflict': true,
+          'type': 'Team Schedule Conflict',
+          'message': '$teamList ${conflictingTeams.length == 1 ? 'is' : 'are'} already scheduled at $normalizedTargetTime',
+          'details': 'Conflicting game${conflictingGames.length > 1 ? 's' : ''}: $gameList',
+          'suggestion': 'Choose a different time when ${conflictingTeams.length == 1 ? 'this team is' : 'these teams are'} available'
+        };
+      }
+      
+      return {
+        'hasConflict': false,
+        'type': 'No Conflict',
+        'message': 'Move is allowed'
+      };
     } catch (e) {
-      return 'Error checking conflicts';
+      return {
+        'hasConflict': true,
+        'type': 'System Error',
+        'message': 'Error checking for conflicts: $e'
+      };
     }
   }
 
@@ -1617,7 +1758,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   
   // Example of enhanced conflict messaging
   void _showConflictExample(GameModel game) {
-    final conflictDetails = _getConflictDetails(game, '30/8/2025', '06:00');
+    final conflictInfo = _getDetailedConflictInfo(game, '30/8/2025', '06:00', '');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Column(
@@ -1638,12 +1779,22 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
             ),
             const SizedBox(height: 4),
             Text(
-              conflictDetails,
+              '${conflictInfo['type']}: ${conflictInfo['message']}',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.white.withOpacity(0.9),
               ),
             ),
+            if (conflictInfo['details'] != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                conflictInfo['details'].toString(),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+              ),
+            ],
           ],
         ),
         backgroundColor: Colors.red,
@@ -2112,12 +2263,94 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       },
       onDraggableCanceled: (velocity, offset) {
         HapticFeedback.heavyImpact();
+        // Show detailed guidance message instead of generic cancellation
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Move canceled for ${game.displayName}'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Could not move ${game.displayName}',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Possible reasons:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '• Dropped outside a valid time slot',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                        Text(
+                          '• Team already playing at that time',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                        Text(
+                          '• Court already booked at that time',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.lightbulb_outline, color: Colors.yellow, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Try: Drop on a green-highlighted time slot or look for "Available" cells',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.white.withOpacity(0.9),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 5),
             ),
           );
         }
@@ -2195,7 +2428,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
     final normalizedTime = _normalizeTimeFormat(targetTime);
     
     if (!_canDropGameToResource(game, targetDate, normalizedTime, resourceId)) {
-      final conflictDetails = _getConflictDetails(game, targetDate, normalizedTime);
+      final conflictInfo = _getDetailedConflictInfo(game, targetDate, normalizedTime, resourceId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2217,17 +2450,38 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  conflictDetails,
+                  '${conflictInfo['type']}: ${conflictInfo['message']}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withOpacity(0.9),
                   ),
                 ),
+                if (conflictInfo['details'] != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    conflictInfo['details'].toString(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+                if (conflictInfo['suggestion'] != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Suggestion: ${conflictInfo['suggestion'].toString()}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.8),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
               ],
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 6), // Longer duration for detailed message
           ),
         );
       }
