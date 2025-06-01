@@ -32,6 +32,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
         contactEmail: event.contactEmail,
         contactPhone: event.contactPhone,
         seed: event.seed,
+        color: event.color,
       );
 
       // Load updated teams list
@@ -85,6 +86,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
         contactEmail: event.contactEmail,
         contactPhone: event.contactPhone,
         seed: event.seed,
+        color: event.color,
         isActive: event.isActive,
       );
 

@@ -16,9 +16,22 @@ class TeamListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final teamColor = team.color ?? Theme.of(context).primaryColor;
+    final hasCustomColor = team.color != null;
     
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
+      color: hasCustomColor ? teamColor.withOpacity(0.08) : null,
+      shape: hasCustomColor 
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: teamColor.withOpacity(0.2),
+                width: 1,
+              ),
+            )
+          : RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
       child: ListTile(
         leading: Container(
           width: 40,
@@ -26,9 +39,10 @@ class TeamListItem extends StatelessWidget {
           decoration: BoxDecoration(
             color: teamColor.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
-            border: team.color != null 
-                ? Border.all(color: teamColor, width: 2)
-                : null,
+            border: Border.all(
+              color: teamColor, 
+              width: hasCustomColor ? 2 : 1,
+            ),
           ),
           child: Icon(
             Icons.group,
@@ -40,18 +54,28 @@ class TeamListItem extends StatelessWidget {
             Expanded(
               child: Text(
                 team.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: hasCustomColor ? Colors.black87 : null,
+                ),
               ),
             ),
-            if (team.color != null) ...[
+            if (hasCustomColor) ...[
               const SizedBox(width: 8),
               Container(
                 width: 16,
                 height: 16,
                 decoration: BoxDecoration(
-                  color: team.color,
+                  color: teamColor,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey.withOpacity(0.5)),
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: teamColor.withOpacity(0.3),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -62,7 +86,12 @@ class TeamListItem extends StatelessWidget {
           children: [
             if (team.description?.isNotEmpty == true) ...[
               const SizedBox(height: 4),
-              Text(team.description!),
+              Text(
+                team.description!,
+                style: TextStyle(
+                  color: hasCustomColor ? Colors.black87 : null,
+                ),
+              ),
             ],
             const SizedBox(height: 4),
             Row(
@@ -71,7 +100,7 @@ class TeamListItem extends StatelessWidget {
                   Icon(
                     Icons.email,
                     size: 16,
-                    color: Colors.grey[600],
+                    color: hasCustomColor ? Colors.black54 : Colors.grey[600],
                   ),
                   const SizedBox(width: 4),
                   Expanded(
@@ -79,7 +108,7 @@ class TeamListItem extends StatelessWidget {
                       team.contactEmail!,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: hasCustomColor ? Colors.black54 : Colors.grey[600],
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -90,14 +119,14 @@ class TeamListItem extends StatelessWidget {
                   Icon(
                     Icons.star,
                     size: 16,
-                    color: Colors.grey[600],
+                    color: hasCustomColor ? Colors.black54 : Colors.grey[600],
                   ),
                   const SizedBox(width: 4),
                   Text(
                     'Seed: ${team.seed}',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: hasCustomColor ? Colors.black54 : Colors.grey[600],
                     ),
                   ),
                 ],

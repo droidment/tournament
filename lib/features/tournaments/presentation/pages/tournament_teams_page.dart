@@ -257,6 +257,7 @@ class _TournamentTeamsPageState extends State<TournamentTeamsPage> {
                 contactEmail: teamData['contactEmail'] as String?,
                 contactPhone: teamData['contactPhone'] as String?,
                 seed: teamData['seed'] as int?,
+                color: teamData['color'] as Color?,
               ),
             );
           },
@@ -288,6 +289,7 @@ class _TournamentTeamsPageState extends State<TournamentTeamsPage> {
                 contactEmail: teamData['contactEmail'] as String?,
                 contactPhone: teamData['contactPhone'] as String?,
                 seed: teamData['seed'] as int?,
+                color: teamData['color'] as Color?,
               ),
             );
           },
