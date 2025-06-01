@@ -19,6 +19,7 @@ TeamModel _$TeamModelFromJson(Map<String, dynamic> json) => TeamModel(
       contactEmail: json['contact_email'] as String?,
       contactPhone: json['contact_phone'] as String?,
       seed: (json['seed'] as num?)?.toInt(),
+      color: TeamModel._colorFromJson(json['color'] as String?),
       isActive: json['is_active'] as bool? ?? true,
       createdAt: json['created_at'] == null
           ? null
@@ -41,6 +42,7 @@ Map<String, dynamic> _$TeamModelToJson(TeamModel instance) => <String, dynamic>{
       'contact_email': instance.contactEmail,
       'contact_phone': instance.contactPhone,
       'seed': instance.seed,
+      'color': TeamModel._colorToJson(instance.color),
       'is_active': instance.isActive,
       'created_at': instance.createdAt?.toIso8601String(),
       'updated_at': instance.updatedAt?.toIso8601String(),

@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/material.dart';
 import '../../../../core/models/team_model.dart';
 
 class TeamRepository {
@@ -15,6 +16,7 @@ class TeamRepository {
     String? contactEmail,
     String? contactPhone,
     int? seed,
+    Color? color,
   }) async {
     final user = _supabaseClient.auth.currentUser;
     if (user == null) {
@@ -32,6 +34,7 @@ class TeamRepository {
       'contact_email': contactEmail,
       'contact_phone': contactPhone,
       'seed': seed,
+      'color': color?.value.toString(),
     };
 
     final data = await _supabaseClient.from('teams').insert(insertData).select().single();
@@ -79,6 +82,7 @@ class TeamRepository {
     String? contactEmail,
     String? contactPhone,
     int? seed,
+    Color? color,
     bool? isActive,
   }) async {
     final user = _supabaseClient.auth.currentUser;
@@ -94,6 +98,7 @@ class TeamRepository {
     if (contactEmail != null) updateData['contact_email'] = contactEmail;
     if (contactPhone != null) updateData['contact_phone'] = contactPhone;
     if (seed != null) updateData['seed'] = seed;
+    if (color != null) updateData['color'] = color.value.toString();
     if (isActive != null) updateData['is_active'] = isActive;
     
     // Always set updated_by when updating

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/material.dart';
 
 abstract class TeamEvent extends Equatable {
   const TeamEvent();
@@ -15,6 +16,7 @@ class TeamCreateRequested extends TeamEvent {
   final String? contactEmail;
   final String? contactPhone;
   final int? seed;
+  final Color? color;
 
   const TeamCreateRequested({
     required this.tournamentId,
@@ -24,6 +26,7 @@ class TeamCreateRequested extends TeamEvent {
     this.contactEmail,
     this.contactPhone,
     this.seed,
+    this.color,
   });
 
   @override
@@ -35,6 +38,7 @@ class TeamCreateRequested extends TeamEvent {
         contactEmail,
         contactPhone,
         seed,
+        color,
       ];
 }
 
@@ -64,6 +68,7 @@ class TeamUpdateRequested extends TeamEvent {
   final String? contactEmail;
   final String? contactPhone;
   final int? seed;
+  final Color? color;
   final bool? isActive;
 
   const TeamUpdateRequested({
@@ -74,6 +79,7 @@ class TeamUpdateRequested extends TeamEvent {
     this.contactEmail,
     this.contactPhone,
     this.seed,
+    this.color,
     this.isActive,
   });
 
@@ -86,6 +92,7 @@ class TeamUpdateRequested extends TeamEvent {
         contactEmail,
         contactPhone,
         seed,
+        color,
         isActive,
       ];
 }

@@ -15,6 +15,8 @@ class TeamListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final teamColor = team.color ?? Theme.of(context).primaryColor;
+    
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
@@ -22,17 +24,38 @@ class TeamListItem extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            color: teamColor.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
+            border: team.color != null 
+                ? Border.all(color: teamColor, width: 2)
+                : null,
           ),
           child: Icon(
             Icons.group,
-            color: Theme.of(context).primaryColor,
+            color: teamColor,
           ),
         ),
-        title: Text(
-          team.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                team.name,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (team.color != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: team.color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey.withOpacity(0.5)),
+                ),
+              ),
+            ],
+          ],
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,31 +107,30 @@ class TeamListItem extends StatelessWidget {
         ),
         trailing: PopupMenuButton<String>(
           onSelected: (value) {
-            if (value == 'edit') {
-              onEdit();
-            } else if (value == 'delete') {
-              onDelete();
+            switch (value) {
+              case 'edit':
+                onEdit();
+                break;
+              case 'delete':
+                onDelete();
+                break;
             }
           },
           itemBuilder: (context) => [
             const PopupMenuItem(
               value: 'edit',
-              child: Row(
-                children: [
-                  Icon(Icons.edit, size: 18),
-                  SizedBox(width: 8),
-                  Text('Edit'),
-                ],
+              child: ListTile(
+                leading: Icon(Icons.edit),
+                title: Text('Edit'),
+                contentPadding: EdgeInsets.zero,
               ),
             ),
             const PopupMenuItem(
               value: 'delete',
-              child: Row(
-                children: [
-                  Icon(Icons.delete, size: 18, color: Colors.red),
-                  SizedBox(width: 8),
-                  Text('Delete', style: TextStyle(color: Colors.red)),
-                ],
+              child: ListTile(
+                leading: Icon(Icons.delete, color: Colors.red),
+                title: Text('Delete', style: TextStyle(color: Colors.red)),
+                contentPadding: EdgeInsets.zero,
               ),
             ),
           ],

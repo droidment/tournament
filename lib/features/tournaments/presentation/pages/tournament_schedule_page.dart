@@ -937,14 +937,18 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
 
   // New compact game card for grid view
   Widget _buildCompactGameCard(GameModel game) {
+    final gradient = _createTeamGradient(game);
+    final borderColor = _getTeamBorderColor(game);
+    
     return Container(
       width: double.infinity,
       height: 85, // Increased from 55 to 85
       padding: const EdgeInsets.all(8), // Increased padding
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: gradient,
+        color: gradient == null ? Colors.white : null,
         borderRadius: BorderRadius.circular(8), // Larger radius
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        border: Border.all(color: borderColor, width: gradient != null ? 2 : 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -963,36 +967,67 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
           ),
           if (game.hasTeams) ...[
             const SizedBox(height: 4), // Increased spacing
-            Text(
-              '${_getTeamName(game.team1Id ?? '')} vs ${_getTeamName(game.team2Id ?? '')}',
-              style: const TextStyle(
-                fontSize: 10, // Increased from 7 to 10
-                color: Colors.black87,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-          const Spacer(),
-          if (game.scheduledTime != null) ...[
             Row(
               children: [
-                Icon(Icons.schedule, size: 12, color: Colors.grey[600]), // Larger icon
-                const SizedBox(width: 2),
+                // Team 1 color indicator
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _getTeamColor(game.team1Id, defaultColor: Colors.blue),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1),
+                  ),
+                ),
+                const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    game.scheduledTime!,
-                    style: TextStyle(
-                      fontSize: 9, // Increased from 6 to 9
-                      color: Colors.grey[600],
+                    '${_getTeamName(game.team1Id ?? '')} vs ${_getTeamName(game.team2Id ?? '')}',
+                    style: const TextStyle(
+                      fontSize: 10, // Increased from 7 to 10
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w500,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                // Team 2 color indicator
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _getTeamColor(game.team2Id, defaultColor: Colors.green),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1),
                   ),
                 ),
               ],
             ),
           ],
+          const Spacer(),
+          // Time indicator with enhanced styling
+          Row(
+            children: [
+              Icon(
+                Icons.access_time,
+                size: 12, // Increased from 8 to 12
+                color: Colors.grey[600],
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  game.scheduledTime ?? 'No time',
+                  style: TextStyle(
+                    fontSize: 9, // Increased from 6 to 9
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1167,164 +1202,233 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   }
 
   Widget _buildGameCard(GameModel game) {
+    final gradient = _createTeamGradient(game);
+    final borderColor = _getTeamBorderColor(game);
+    
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    game.displayName,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                _buildStatusChip(game.status),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            // Teams info
-            if (game.hasTeams) ...[
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(12),
+          border: gradient != null ? Border.all(color: borderColor, width: 2) : null,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with game name and status
               Row(
                 children: [
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Text(
+                      game.displayName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  _buildStatusChip(game.status),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // Teams section with color indicators
+              if (game.hasTeams) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      // Team 1
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: _getTeamColor(game.team1Id, defaultColor: Colors.blue),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _teamMap[game.team1Id]?.name ?? 'Team 1',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      // VS indicator
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'VS',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      
+                      // Team 2
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _teamMap[game.team2Id]?.name ?? 'Team 2',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.end,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: _getTeamColor(game.team2Id, defaultColor: Colors.green),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                if (game.hasResults) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Team 1: ${_teamMap[game.team1Id]?.name ?? 'Team 1'}',
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          'Team 2: ${_teamMap[game.team2Id]?.name ?? 'Team 2'}',
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          game.resultSummary!,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  if (game.hasResults) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        game.resultSummary!,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
-              ),
-              const SizedBox(height: 8),
-            ] else ...[
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.warning, color: Colors.orange, size: 16),
-                    SizedBox(width: 8),
-                    Text('Teams not assigned'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-            
-            // Schedule info
-            Row(
-              children: [
-                if (game.scheduledDateTime != null) ...[
-                  Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      game.scheduledDateTime!,
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
+                const SizedBox(height: 8),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                ] else ...[
-                  Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Not scheduled',
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.orange, size: 16),
+                      SizedBox(width: 8),
+                      Text('Teams not assigned'),
+                    ],
                   ),
-                ],
+                ),
+                const SizedBox(height: 8),
               ],
-            ),
-            
-            // Resource/Court info
-            if (game.resourceId != null) ...[
-              const SizedBox(height: 4),
+              
+              // Schedule info
               Row(
                 children: [
-                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      _resourceMap[game.resourceId]?.name ?? 'Court ${game.resourceId?.substring(0, 8)}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                  if (game.scheduledDateTime != null) ...[
+                    Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        game.scheduledDateTime!,
+                        style: TextStyle(color: Colors.grey[600]),
                       ),
                     ),
-                  ),
+                  ] else ...[
+                    Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Not scheduled',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-            ],
-            
-            const SizedBox(height: 12),
-            
-            // Action buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                if (game.canEdit) ...[
+              
+              // Resource/Court info
+              if (game.resourceId != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      _resourceMap[game.resourceId]?.name ?? 'Unknown Resource',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ],
+              
+              // Action buttons
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
                   _buildActionButton(
                     icon: Icons.edit,
                     label: 'Edit',
-                    onPressed: () => _showGameOptions(game),
+                    onPressed: game.canEdit ? () => _editGame(game) : null,
                   ),
                   _buildActionButton(
                     icon: Icons.play_arrow,
                     label: 'Start',
                     onPressed: game.canStart ? () => _startGame(game) : null,
                   ),
-                ],
-                if (game.status == GameStatus.inProgress) ...[
                   _buildActionButton(
-                    icon: Icons.sports_score,
-                    label: 'Complete',
-                    onPressed: () => _showCompleteGameDialog(game),
+                    icon: Icons.visibility,
+                    label: 'View',
+                    onPressed: () => _viewGame(game),
                   ),
                 ],
-                _buildActionButton(
-                  icon: Icons.more_vert,
-                  label: 'More',
-                  onPressed: () => _showGameOptions(game),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2540,5 +2644,123 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         );
       }
     }
+  }
+
+  // Helper function to create gradient between team colors
+  Gradient? _createTeamGradient(GameModel game) {
+    if (!game.hasTeams) return null;
+    
+    final team1 = _teamMap[game.team1Id];
+    final team2 = _teamMap[game.team2Id];
+    
+    final color1 = team1?.color ?? Colors.blue.shade300;
+    final color2 = team2?.color ?? Colors.green.shade300;
+    
+    return LinearGradient(
+      colors: [color1.withOpacity(0.3), color2.withOpacity(0.3)],
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      stops: const [0.0, 1.0],
+    );
+  }
+
+  // Helper function to get a single team color or default
+  Color _getTeamColor(String? teamId, {Color? defaultColor}) {
+    if (teamId == null) return defaultColor ?? Colors.grey.shade300;
+    final team = _teamMap[teamId];
+    return team?.color ?? defaultColor ?? Colors.grey.shade300;
+  }
+
+  // Helper function to get border color for teams
+  Color _getTeamBorderColor(GameModel game) {
+    if (!game.hasTeams) return Colors.grey.withOpacity(0.3);
+    
+    final team1 = _teamMap[game.team1Id];
+    final team2 = _teamMap[game.team2Id];
+    
+    if (team1?.color != null || team2?.color != null) {
+      return (team1?.color ?? team2?.color ?? Colors.grey).withOpacity(0.6);
+    }
+    
+    return Colors.grey.withOpacity(0.3);
+  }
+
+  void _editGame(GameModel game) {
+    // TODO: Implement edit game functionality
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Edit game functionality coming soon!'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
+  void _viewGame(GameModel game) {
+    // Show detailed game information dialog
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(game.displayName),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (game.hasTeams) ...[
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: _getTeamColor(game.team1Id, defaultColor: Colors.blue),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(_teamMap[game.team1Id]?.name ?? 'Team 1'),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: _getTeamColor(game.team2Id, defaultColor: Colors.green),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(_teamMap[game.team2Id]?.name ?? 'Team 2'),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (game.scheduledDateTime != null) ...[
+              Text('Scheduled: ${game.scheduledDateTime}'),
+              const SizedBox(height: 8),
+            ],
+            if (game.resourceId != null) ...[
+              Text('Location: ${_resourceMap[game.resourceId]?.name ?? 'Unknown'}'),
+              const SizedBox(height: 8),
+            ],
+            Text('Status: ${game.statusDisplayName}'),
+            if (game.hasResults) ...[
+              const SizedBox(height: 8),
+              Text('Result: ${game.resultSummary}'),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 } 

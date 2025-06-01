@@ -26,6 +26,27 @@ class _AddTeamDialogState extends State<AddTeamDialog> {
   final _seedController = TextEditingController();
   
   String? _selectedCategoryId;
+  Color? _selectedColor;
+
+  // Predefined team colors
+  final List<Color> _predefinedColors = [
+    Colors.red,
+    Colors.blue,
+    Colors.green,
+    Colors.orange,
+    Colors.purple,
+    Colors.teal,
+    Colors.indigo,
+    Colors.pink,
+    Colors.amber,
+    Colors.cyan,
+    Colors.lime,
+    Colors.brown,
+    Colors.blueGrey,
+    Colors.deepOrange,
+    Colors.deepPurple,
+    Colors.lightBlue,
+  ];
 
   @override
   void dispose() {
@@ -62,6 +83,99 @@ class _AddTeamDialogState extends State<AddTeamDialog> {
                 },
               ),
               const SizedBox(height: 16),
+              
+              // Team Color Picker
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Team Color (Optional)',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_selectedColor != null) ...[
+                          Row(
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: _selectedColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Selected Color',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const Spacer(),
+                              TextButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedColor = null;
+                                  });
+                                },
+                                child: const Text('Remove'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _predefinedColors.map((color) {
+                            final isSelected = _selectedColor == color;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedColor = color;
+                                });
+                              },
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.black : Colors.grey,
+                                    width: isSelected ? 3 : 1,
+                                  ),
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 20,
+                                      )
+                                    : null,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
@@ -72,27 +186,26 @@ class _AddTeamDialogState extends State<AddTeamDialog> {
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
+              
+              // Category dropdown
               BlocBuilder<CategoryBloc, CategoryState>(
                 builder: (context, state) {
-                  if (state.categories.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-                  
-                  return DropdownButtonFormField<String?>(
+                  return DropdownButtonFormField<String>(
                     value: _selectedCategoryId,
                     decoration: const InputDecoration(
                       labelText: 'Category (Optional)',
+                      hintText: 'Select category',
                       border: OutlineInputBorder(),
                     ),
                     items: [
-                      const DropdownMenuItem<String?>(
+                      const DropdownMenuItem<String>(
                         value: null,
                         child: Text('No Category'),
                       ),
                       ...state.categories.map((category) => DropdownMenuItem(
-                            value: category.id,
-                            child: Text(category.name),
-                          )),
+                        value: category.id,
+                        child: Text(category.name),
+                      )),
                     ],
                     onChanged: (value) {
                       setState(() {
@@ -103,75 +216,62 @@ class _AddTeamDialogState extends State<AddTeamDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _contactEmailController,
-                decoration: const InputDecoration(
-                  labelText: 'Contact Email (Optional)',
-                  hintText: 'team@example.com',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value != null && value.trim().isNotEmpty) {
-                    if (!value.contains('@')) {
-                      return 'Please enter a valid email address';
-                    }
-                  }
-                  return null;
-                },
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _contactEmailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Contact Email',
+                        hintText: 'team@example.com',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          if (!emailRegex.hasMatch(value)) {
+                            return 'Invalid email format';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _contactPhoneController,
+                      decoration: const InputDecoration(
+                        labelText: 'Contact Phone',
+                        hintText: '+1 234 567 8900',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _contactPhoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Contact Phone (Optional)',
-                  hintText: '+1 (555) 123-4567',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
+              
               TextFormField(
                 controller: _seedController,
                 decoration: const InputDecoration(
                   labelText: 'Seed (Optional)',
-                  hintText: 'Tournament seeding number',
+                  hintText: 'Tournament ranking (1-32)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value != null && value.trim().isNotEmpty) {
-                    final number = int.tryParse(value.trim());
-                    if (number == null || number < 1) {
+                  if (value != null && value.isNotEmpty) {
+                    final seed = int.tryParse(value);
+                    if (seed == null || seed <= 0) {
                       return 'Seed must be a positive number';
                     }
                   }
                   return null;
                 },
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade600, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'You can add team members and manage roster after creating the team.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue.shade800,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
@@ -182,7 +282,7 @@ class _AddTeamDialogState extends State<AddTeamDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
+        ElevatedButton(
           onPressed: _submitForm,
           child: const Text('Add Team'),
         ),
@@ -191,9 +291,7 @@ class _AddTeamDialogState extends State<AddTeamDialog> {
   }
 
   void _submitForm() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     final teamData = {
       'name': _nameController.text.trim(),
@@ -210,6 +308,7 @@ class _AddTeamDialogState extends State<AddTeamDialog> {
       'seed': _seedController.text.trim().isEmpty 
           ? null 
           : int.parse(_seedController.text.trim()),
+      'color': _selectedColor,
     };
 
     widget.onTeamAdded(teamData);

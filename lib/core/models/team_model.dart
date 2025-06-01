@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:flutter/material.dart';
 
 part 'team_model.g.dart';
 
@@ -18,6 +19,7 @@ class TeamModel extends Equatable {
     this.contactEmail,
     this.contactPhone,
     this.seed,
+    this.color,
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
@@ -43,12 +45,28 @@ class TeamModel extends Equatable {
   @JsonKey(name: 'contact_phone')
   final String? contactPhone;
   final int? seed;
+  @JsonKey(name: 'color', fromJson: _colorFromJson, toJson: _colorToJson)
+  final Color? color;
   @JsonKey(name: 'is_active')
   final bool isActive;
   @JsonKey(name: 'created_at')
   final DateTime? createdAt;
   @JsonKey(name: 'updated_at')
   final DateTime? updatedAt;
+
+  // Color conversion helpers
+  static Color? _colorFromJson(String? colorString) {
+    if (colorString == null) return null;
+    try {
+      return Color(int.parse(colorString));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static String? _colorToJson(Color? color) {
+    return color?.value.toString();
+  }
 
   factory TeamModel.fromJson(Map<String, dynamic> json) =>
       _$TeamModelFromJson(json);
@@ -68,6 +86,7 @@ class TeamModel extends Equatable {
     String? contactEmail,
     String? contactPhone,
     int? seed,
+    Color? color,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -85,6 +104,7 @@ class TeamModel extends Equatable {
       contactEmail: contactEmail ?? this.contactEmail,
       contactPhone: contactPhone ?? this.contactPhone,
       seed: seed ?? this.seed,
+      color: color ?? this.color,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -105,6 +125,7 @@ class TeamModel extends Equatable {
         contactEmail,
         contactPhone,
         seed,
+        color,
         isActive,
         createdAt,
         updatedAt,
