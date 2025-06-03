@@ -52,7 +52,11 @@ unlinked_spec.ds
 **/android/app/debug
 **/android/app/profile
 **/android/app/release
+# Android build cache and NDK files
+**/android/app/.cxx/
 *.jks
+# Debug APK files
+*-debug.apk
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -90,7 +94,6 @@ coverage/
 packages/**/pubspec.lock
 
 # Web related
-lib/generated_plugin_registrant.dart
 
 # Symbolication related
 app.*.symbols
@@ -100,6 +103,9 @@ app.*.map.json
 
 # Environment Configuration - Contains sensitive API keys
 lib/core/config/env.dart
+
+# Cursor MCP configuration - Contains sensitive API keys
+.cursor/mcp.json
 
 # Exceptions to the above rules.
 !**/ios/**/default.mode1v3
