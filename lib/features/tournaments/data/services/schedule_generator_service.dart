@@ -9,6 +9,9 @@ import '../repositories/resource_availability_repository.dart';
 class ScheduleGeneratorService {
   final GameRepository _gameRepository = GameRepository();
   final ResourceAvailabilityRepository _availabilityRepository = ResourceAvailabilityRepository();
+  
+  // Default minimum rest interval between games for the same team (in minutes)
+  static const int _defaultMinimumRestMinutes = 120; // 2 hours
 
   /// Generate round robin schedule for all teams
   Future<List<GameModel>> generateRoundRobinSchedule({
@@ -20,21 +23,25 @@ class ScheduleGeneratorService {
     required int gameDurationMinutes,
     required int timeBetweenGamesMinutes,
     String? categoryId,
+    int? minimumRestMinutes, // New parameter for customizable rest interval
   }) async {
     print('🎯 DEBUG: Starting round robin schedule generation');
     print('📊 Teams: ${teams.length}');
     print('🏟️ Resources: ${resources.length}');
     print('📅 Date range: $startDate to $endDate');
     print('⏱️ Game duration: ${gameDurationMinutes}min, Between games: ${timeBetweenGamesMinutes}min');
+    
+    final restInterval = minimumRestMinutes ?? _defaultMinimumRestMinutes;
+    print('🛌 Minimum rest interval between team games: ${restInterval}min');
 
     if (teams.length < 2) {
       print('❌ ERROR: Need at least 2 teams for round robin');
       throw Exception('Need at least 2 teams for round robin tournament');
     }
 
-    // Generate all possible matchups
-    final matchups = _generateRoundRobinMatchups(teams);
-    print('🔀 Generated ${matchups.length} matchups');
+    // Generate all possible matchups with optional ordering for better distribution
+    final matchups = _generateRoundRobinMatchupsWithBalancing(teams);
+    print('🔀 Generated ${matchups.length} matchups with balanced ordering');
     for (int i = 0; i < matchups.length; i++) {
       final matchup = matchups[i];
       print('   Game ${i + 1}: ${matchup.team1.name} vs ${matchup.team2.name}');
@@ -77,14 +84,15 @@ class ScheduleGeneratorService {
 
     print('✅ Sufficient time slots available, proceeding with scheduling...');
 
-    // Schedule games optimally
-    final games = _scheduleGamesOptimally(
+    // Schedule games optimally with rest interval enforcement
+    final games = _scheduleGamesOptimallyWithRestInterval(
       matchups,
       timeSlots,
       resources,
       tournamentId,
       categoryId,
       gameDurationMinutes,
+      restInterval,
     );
 
     print('🎉 Successfully scheduled ${games.length} games');
@@ -123,19 +131,68 @@ class ScheduleGeneratorService {
     return createdGames;
   }
 
-  /// Generate all possible team combinations for round robin
-  List<TeamMatchup> _generateRoundRobinMatchups(List<TeamModel> teams) {
+  /// Generate all possible team combinations for round robin with optional ordering for better distribution
+  List<TeamMatchup> _generateRoundRobinMatchupsWithBalancing(List<TeamModel> teams) {
     final List<TeamMatchup> matchups = [];
     
-    for (int i = 0; i < teams.length; i++) {
-      for (int j = i + 1; j < teams.length; j++) {
+    // Use round-robin tournament algorithm for better distribution
+    // This helps spread out each team's games more evenly over time
+    if (teams.length % 2 == 1) {
+      // Odd number of teams - add a "bye" team temporarily
+      final byeTeam = TeamModel(
+        id: 'bye_team',
+        name: 'BYE',
+        tournamentId: '',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      teams = [...teams, byeTeam];
+    }
+    
+    final n = teams.length;
+    final rounds = n - 1;
+    final gamesPerRound = n ~/ 2;
+    
+    print('🔄 Using round-robin algorithm: $rounds rounds, $gamesPerRound games per round');
+    
+    // Create the matchups using round-robin algorithm
+    for (int round = 0; round < rounds; round++) {
+      print('  📅 Round ${round + 1}:');
+      
+      for (int game = 0; game < gamesPerRound; game++) {
+        int homeIndex, awayIndex;
+        
+        if (game == 0) {
+          homeIndex = 0; // First team stays fixed
+          awayIndex = rounds - round;
+        } else {
+          homeIndex = (round + game) % rounds + 1;
+          awayIndex = (round - game + rounds) % rounds + 1;
+          
+          // Adjust indices to avoid the fixed first team
+          if (homeIndex >= awayIndex) homeIndex++;
+          if (awayIndex >= n - 1) awayIndex = 0;
+        }
+        
+        final homeTeam = teams[homeIndex];
+        final awayTeam = teams[awayIndex];
+        
+        // Skip if either team is the bye team
+        if (homeTeam.id == 'bye_team' || awayTeam.id == 'bye_team') {
+          print('    - ${homeTeam.id == 'bye_team' ? awayTeam.name : homeTeam.name} has a bye');
+          continue;
+        }
+        
         matchups.add(TeamMatchup(
-          team1: teams[i],
-          team2: teams[j],
+          team1: homeTeam,
+          team2: awayTeam,
         ));
+        
+        print('    - ${homeTeam.name} vs ${awayTeam.name}');
       }
     }
     
+    print('🎯 Generated ${matchups.length} balanced matchups');
     return matchups;
   }
 
@@ -445,6 +502,11 @@ class ScheduleGeneratorService {
     return (teamCount * (teamCount - 1)) ~/ 2;
   }
 
+  /// Get the default minimum rest interval between games for the same team
+  static int getDefaultMinimumRestMinutes() {
+    return _defaultMinimumRestMinutes;
+  }
+
   /// Estimate tournament duration
   static Duration estimateTournamentDuration({
     required int totalGames,
@@ -462,17 +524,23 @@ class ScheduleGeneratorService {
     return Duration(minutes: totalMinutes);
   }
 
-  /// Schedule games optimally across available time slots
-  List<GameModel> _scheduleGamesOptimally(
+  /// Schedule games optimally with rest interval enforcement
+  List<GameModel> _scheduleGamesOptimallyWithRestInterval(
     List<TeamMatchup> matchups,
     List<TimeSlot> timeSlots,
     List<TournamentResourceModel> resources,
     String tournamentId,
     String? categoryId,
     int gameDurationMinutes,
+    int restInterval,
   ) {
-    print('🔧 Starting optimal game scheduling with team conflict prevention...');
+    print('🔧 Starting optimal game scheduling with team conflict prevention and rest interval enforcement...');
     final List<GameModel> scheduledGames = [];
+    
+    // Track last game end time for each team (teamId -> DateTime)
+    final Map<String, DateTime> teamLastGameEndTime = {};
+    
+    print('📋 Team rest interval tracking initialized');
 
     for (int i = 0; i < matchups.length; i++) {
       final matchup = matchups[i];
@@ -486,7 +554,7 @@ class ScheduleGeneratorService {
       for (int j = 0; j < timeSlots.length; j++) {
         final slot = timeSlots[j];
         
-        // Check if this slot creates a team conflict
+        // Check if this slot creates a team conflict (same time slot)
         bool hasTeamConflict = false;
         
         for (final existingGame in scheduledGames) {
@@ -504,7 +572,23 @@ class ScheduleGeneratorService {
           }
         }
         
+        // Check if either team needs more rest time before this slot
+        bool hasRestIntervalViolation = false;
         if (!hasTeamConflict) {
+          hasRestIntervalViolation = _checkRestIntervalViolation(
+            slot, 
+            matchup, 
+            teamLastGameEndTime, 
+            restInterval, 
+            gameDurationMinutes
+          );
+          
+          if (hasRestIntervalViolation) {
+            print('     ⏳ Rest interval violation: ${slot.resourceName} ${slot.startTime} - teams need more rest');
+          }
+        }
+        
+        if (!hasTeamConflict && !hasRestIntervalViolation) {
           availableSlot = slot;
           slotIndex = j;
           print('     ✅ Found available slot: ${slot.resourceName} ${slot.startTime}');
@@ -543,6 +627,14 @@ class ScheduleGeneratorService {
 
       scheduledGames.add(game);
       
+      // Update last game time for both teams
+      _updateTeamLastGameTime(
+        availableSlot, 
+        matchup, 
+        teamLastGameEndTime, 
+        gameDurationMinutes
+      );
+      
       // Remove the used slot from available slots to prevent double-booking
       timeSlots.removeAt(slotIndex);
     }
@@ -551,10 +643,77 @@ class ScheduleGeneratorService {
     
     if (scheduledGames.length < matchups.length) {
       final missed = matchups.length - scheduledGames.length;
-      print('⚠️ WARNING: Could not schedule $missed games due to team conflicts or insufficient slots');
+      print('⚠️ WARNING: Could not schedule $missed games due to team conflicts, rest interval violations, or insufficient slots');
     }
     
     return scheduledGames;
+  }
+  
+  /// Check if scheduling a game in this slot would violate the minimum rest interval for either team
+  bool _checkRestIntervalViolation(
+    TimeSlot slot,
+    TeamMatchup matchup,
+    Map<String, DateTime> teamLastGameEndTime,
+    int restIntervalMinutes,
+    int gameDurationMinutes,
+  ) {
+    // Calculate when this game would start
+    final gameStartTime = DateTime(
+      slot.date.year,
+      slot.date.month,
+      slot.date.day,
+      _parseTime(slot.startTime).hour,
+      _parseTime(slot.startTime).minute,
+    );
+    
+    // Check team1's rest interval
+    if (teamLastGameEndTime.containsKey(matchup.team1.id)) {
+      final lastGameEnd = teamLastGameEndTime[matchup.team1.id]!;
+      final timeSinceLastGame = gameStartTime.difference(lastGameEnd).inMinutes;
+      
+      if (timeSinceLastGame < restIntervalMinutes) {
+        print('       🛌 Team ${matchup.team1.name} needs ${restIntervalMinutes - timeSinceLastGame} more minutes of rest');
+        return true;
+      }
+    }
+    
+    // Check team2's rest interval
+    if (teamLastGameEndTime.containsKey(matchup.team2.id)) {
+      final lastGameEnd = teamLastGameEndTime[matchup.team2.id]!;
+      final timeSinceLastGame = gameStartTime.difference(lastGameEnd).inMinutes;
+      
+      if (timeSinceLastGame < restIntervalMinutes) {
+        print('       🛌 Team ${matchup.team2.name} needs ${restIntervalMinutes - timeSinceLastGame} more minutes of rest');
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  /// Update the last game end time for both teams in a matchup
+  void _updateTeamLastGameTime(
+    TimeSlot slot,
+    TeamMatchup matchup,
+    Map<String, DateTime> teamLastGameEndTime,
+    int gameDurationMinutes,
+  ) {
+    // Calculate when this game ends
+    final gameStartTime = DateTime(
+      slot.date.year,
+      slot.date.month,
+      slot.date.day,
+      _parseTime(slot.startTime).hour,
+      _parseTime(slot.startTime).minute,
+    );
+    
+    final gameEndTime = gameStartTime.add(Duration(minutes: gameDurationMinutes));
+    
+    // Update both teams' last game end time
+    teamLastGameEndTime[matchup.team1.id] = gameEndTime;
+    teamLastGameEndTime[matchup.team2.id] = gameEndTime;
+    
+    print('     🕐 Updated last game time for ${matchup.team1.name} and ${matchup.team2.name}: ${_formatTime(TimeOfDay.fromDateTime(gameEndTime))}');
   }
 
   /// Check if a time slot matches an existing game's time and date

@@ -37,6 +37,7 @@ class _GenerateScheduleDialogState extends State<GenerateScheduleDialog> {
   // Form controllers
   final _gameDurationController = TextEditingController(text: '60');
   final _breakDurationController = TextEditingController(text: '15');
+  final _minimumRestController = TextEditingController(text: '120'); // Default 2 hours
   
   // Form state
   CategoryModel? _selectedCategory;
@@ -66,6 +67,7 @@ class _GenerateScheduleDialogState extends State<GenerateScheduleDialog> {
   void dispose() {
     _gameDurationController.dispose();
     _breakDurationController.dispose();
+    _minimumRestController.dispose();
     super.dispose();
   }
 
@@ -431,6 +433,49 @@ class _GenerateScheduleDialogState extends State<GenerateScheduleDialog> {
             
             const SizedBox(height: 16),
             
+            // Minimum rest interval
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Minimum Rest Interval (minutes)',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Minimum time between games for the same team (default: 120 minutes)',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _minimumRestController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: '120',
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          final duration = int.tryParse(value ?? '');
+                          if (duration == null || duration < 0) {
+                            return 'Invalid minimum rest interval';
+                          }
+                          return null;
+                        },
+                        onChanged: (value) => _calculateStats(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
             // Publish toggle
             SwitchListTile(
               title: const Text('Publish Games'),
@@ -583,6 +628,7 @@ class _GenerateScheduleDialogState extends State<GenerateScheduleDialog> {
                     Text('• Every team plays every other team once'),
                     Text('• Games distributed across ${_resources.length} resource${_resources.length != 1 ? 's' : ''}'),
                     Text('• Automatic scheduling with conflict avoidance'),
+                    Text('• Prevents back-to-back games (${int.tryParse(_minimumRestController.text) ?? 120} min rest)'),
                   ],
                 ),
               ),
@@ -706,6 +752,7 @@ class _GenerateScheduleDialogState extends State<GenerateScheduleDialog> {
         gameDurationMinutes: int.parse(_gameDurationController.text),
         timeBetweenGamesMinutes: int.parse(_breakDurationController.text),
         categoryId: _selectedCategory?.id,
+        minimumRestMinutes: int.parse(_minimumRestController.text),
       );
 
       widget.onScheduleGenerated(games);
