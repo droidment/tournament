@@ -35,7 +35,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 # Build folder - ignore everything except web build for deployment
-build/
+build/*
 !build/web/
 flutter_*.png
 linked_*.ds
