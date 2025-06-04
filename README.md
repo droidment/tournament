@@ -54,6 +54,7 @@ Legend: ✅ Implemented | 🚧 In Development | ❌ Not Started
 - **State Management**: BLoC/Cubit
 - **Navigation**: GoRouter
 - **UI Components**: Material Design 3
+- **Deployment**: Netlify (web), Android APK
 
 ## Prerequisites
 
@@ -343,6 +344,33 @@ For support and questions:
 - 🚧 Real-time scoring
 - 🚧 Mobile notifications
 - 🚧 Offline functionality
+
+## Deployment
+
+### Web Deployment (Netlify)
+
+This app includes a `netlify.toml` configuration file for easy deployment to Netlify:
+
+1. **Connect Repository**: Link your GitHub repository to Netlify
+2. **Automatic Build**: Netlify will automatically detect the configuration and run `flutter build web --release`
+3. **Environment Variables**: Set your Supabase credentials in the Netlify dashboard:
+   - `SUPABASE_URL`
+   - `SUPABASE_ANON_KEY`
+4. **Deploy**: Your app will be automatically deployed with optimal performance and security settings
+
+### Android APK Build
+
+To build an Android APK for distribution:
+
+```bash
+# Debug build (for testing)
+flutter build apk --debug
+
+# Release build (for production)
+flutter build apk --release
+```
+
+APK files will be generated in `build/app/outputs/flutter-apk/`
 
 ---
 
