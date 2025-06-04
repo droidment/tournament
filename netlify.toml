@@ -1,16 +1,7 @@
 [build]
-  # Build command for Flutter web
-  command = "flutter build web --release"
-  
-  # Directory to publish (Flutter web builds go to build/web)
+  # No build command - using pre-built files from build/web
+  # Build locally with: flutter build web --release
   publish = "build/web"
-
-[build.environment]
-  # Specify Flutter version (adjust as needed)
-  FLUTTER_VERSION = "3.24.0"
-  
-  # Enable web builds
-  FLUTTER_WEB = "true"
 
 # Handle single-page application routing
 [[redirects]]
