@@ -199,7 +199,15 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            // Try multiple navigation approaches for robustness
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              // Fallback: navigate to tournament management
+              context.go('/tournaments');
+            }
+          },
           tooltip: 'Back to Tournament Management',
         ),
         title: Column(
