@@ -174,7 +174,31 @@ class GameRepository {
     if (scheduledDate != null) updateData['scheduled_date'] = scheduledDate.toIso8601String().split('T')[0];
     if (scheduledTime != null) updateData['scheduled_time'] = scheduledTime;
     if (estimatedDuration != null) updateData['estimated_duration'] = estimatedDuration;
-    if (status != null) updateData['status'] = status.name;
+    if (status != null) {
+      // Convert enum to proper string value for database
+      String statusValue;
+      switch (status) {
+        case GameStatus.scheduled:
+          statusValue = 'scheduled';
+          break;
+        case GameStatus.inProgress:
+          statusValue = 'in_progress';
+          break;
+        case GameStatus.completed:
+          statusValue = 'completed';
+          break;
+        case GameStatus.cancelled:
+          statusValue = 'cancelled';
+          break;
+        case GameStatus.postponed:
+          statusValue = 'postponed';
+          break;
+        case GameStatus.forfeit:
+          statusValue = 'forfeit';
+          break;
+      }
+      updateData['status'] = statusValue;
+    }
     if (notes != null) updateData['notes'] = notes;
     if (isPublished != null) updateData['is_published'] = isPublished;
     if (refereeNotes != null) updateData['referee_notes'] = refereeNotes;
@@ -193,7 +217,7 @@ class GameRepository {
   /// Start a game
   Future<GameModel> startGame(String gameId) async {
     final updateData = {
-      'status': GameStatus.inProgress.name,
+      'status': 'in_progress', // Use the @JsonValue instead of .name
       'started_at': DateTime.now().toIso8601String(),
     };
 
@@ -216,7 +240,7 @@ class GameRepository {
     String? refereeNotes,
   }) async {
     final updateData = {
-      'status': GameStatus.completed.name,
+      'status': 'completed', // Use the @JsonValue instead of .name
       'team1_score': team1Score,
       'team2_score': team2Score,
       'winner_id': winnerId,
@@ -240,7 +264,7 @@ class GameRepository {
   /// Cancel or postpone a game
   Future<GameModel> cancelGame(String gameId, {bool isPermanent = false}) async {
     final updateData = {
-      'status': isPermanent ? GameStatus.cancelled.name : GameStatus.postponed.name,
+      'status': isPermanent ? 'cancelled' : 'postponed', // Use @JsonValue instead of .name
     };
 
     final data = await _supabaseClient

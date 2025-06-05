@@ -131,68 +131,28 @@ class ScheduleGeneratorService {
     return createdGames;
   }
 
-  /// Generate all possible team combinations for round robin with optional ordering for better distribution
+  /// Generate all possible team combinations for round robin
   List<TeamMatchup> _generateRoundRobinMatchupsWithBalancing(List<TeamModel> teams) {
     final List<TeamMatchup> matchups = [];
     
-    // Use round-robin tournament algorithm for better distribution
-    // This helps spread out each team's games more evenly over time
-    if (teams.length % 2 == 1) {
-      // Odd number of teams - add a "bye" team temporarily
-      final byeTeam = TeamModel(
-        id: 'bye_team',
-        name: 'BYE',
-        tournamentId: '',
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      teams = [...teams, byeTeam];
-    }
+    print('🔄 Generating round-robin matchups for ${teams.length} teams');
     
-    final n = teams.length;
-    final rounds = n - 1;
-    final gamesPerRound = n ~/ 2;
-    
-    print('🔄 Using round-robin algorithm: $rounds rounds, $gamesPerRound games per round');
-    
-    // Create the matchups using round-robin algorithm
-    for (int round = 0; round < rounds; round++) {
-      print('  📅 Round ${round + 1}:');
-      
-      for (int game = 0; game < gamesPerRound; game++) {
-        int homeIndex, awayIndex;
-        
-        if (game == 0) {
-          homeIndex = 0; // First team stays fixed
-          awayIndex = rounds - round;
-        } else {
-          homeIndex = (round + game) % rounds + 1;
-          awayIndex = (round - game + rounds) % rounds + 1;
-          
-          // Adjust indices to avoid the fixed first team
-          if (homeIndex >= awayIndex) homeIndex++;
-          if (awayIndex >= n - 1) awayIndex = 0;
-        }
-        
-        final homeTeam = teams[homeIndex];
-        final awayTeam = teams[awayIndex];
-        
-        // Skip if either team is the bye team
-        if (homeTeam.id == 'bye_team' || awayTeam.id == 'bye_team') {
-          print('    - ${homeTeam.id == 'bye_team' ? awayTeam.name : homeTeam.name} has a bye');
-          continue;
-        }
+    // Simple round robin: every team plays every other team exactly once
+    for (int i = 0; i < teams.length; i++) {
+      for (int j = i + 1; j < teams.length; j++) {
+        final team1 = teams[i];
+        final team2 = teams[j];
         
         matchups.add(TeamMatchup(
-          team1: homeTeam,
-          team2: awayTeam,
+          team1: team1,
+          team2: team2,
         ));
         
-        print('    - ${homeTeam.name} vs ${awayTeam.name}');
+        print('  - ${team1.name} vs ${team2.name}');
       }
     }
     
-    print('🎯 Generated ${matchups.length} balanced matchups');
+    print('🎯 Generated ${matchups.length} round-robin matchups');
     return matchups;
   }
 

@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/models/game_model.dart';
 import '../../../../core/models/team_model.dart';
 import '../../../../core/models/tournament_resource_model.dart';
+import '../../data/models/category_model.dart';
 import '../../data/repositories/game_repository.dart';
 import '../../data/repositories/team_repository.dart';
 import '../../data/repositories/tournament_resource_repository.dart';
+import '../../data/repositories/category_repository.dart';
 import '../widgets/generate_schedule_dialog.dart';
+import '../widgets/tournament_standings_widget.dart';
+import '../../data/services/tournament_standings_service.dart';
+import '../../data/models/tournament_model.dart';
+import '../../../../core/models/tournament_standings_model.dart';
 
 class TournamentSchedulePage extends StatefulWidget {
   final String tournamentId;
@@ -29,23 +36,37 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   final GameRepository _repository = GameRepository();
   final TeamRepository _teamRepository = TeamRepository();
   final TournamentResourceRepository _resourceRepository = TournamentResourceRepository();
+  final CategoryRepository _categoryRepository = CategoryRepository();
   
   List<GameModel> _allGames = [];
   List<GameModel> _scheduledGames = [];
   List<GameModel> _completedGames = [];
   List<TeamModel> _teams = [];
   List<TournamentResourceModel> _resources = [];
+  List<CategoryModel> _categories = [];
   Map<String, TeamModel> _teamMap = {};
   Map<String, TournamentResourceModel> _resourceMap = {};
+  Map<String, CategoryModel> _categoryMap = {};
   bool _isLoading = true;
   Map<String, dynamic> _stats = {};
   bool _isScheduleView = false;
   bool _isGridView = false;
+  
+  // Filter variables
+  String? _selectedCategoryFilter;
+  String? _selectedTeamFilter;
+  String? _selectedResourceFilter;
+  
+  // Filtered games lists
+  List<GameModel> _filteredAllGames = [];
+  List<GameModel> _filteredScheduledGames = [];
+  List<GameModel> _filteredCompletedGames = [];
+  List<TeamModel> _filteredTeams = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadGames();
   }
 
@@ -63,6 +84,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       final stats = await _repository.getTournamentGameStats(widget.tournamentId);
       final teams = await _teamRepository.getTournamentTeams(widget.tournamentId);
       final resources = await _resourceRepository.getTournamentResources(widget.tournamentId);
+      final categories = await _categoryRepository.getTournamentCategories(widget.tournamentId);
       
       // Create a map for quick team lookups
       final teamMap = <String, TeamModel>{};
@@ -76,17 +98,28 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         resourceMap[resource.id] = resource;
       }
       
+      // Create a map for quick category lookups
+      final categoryMap = <String, CategoryModel>{};
+      for (final category in categories) {
+        categoryMap[category.id] = category;
+      }
+      
       setState(() {
         _allGames = games;
         _scheduledGames = games.where((g) => g.status == GameStatus.scheduled).toList();
         _completedGames = games.where((g) => g.status == GameStatus.completed).toList();
         _teams = teams;
         _resources = resources;
+        _categories = categories;
         _teamMap = teamMap;
         _resourceMap = resourceMap;
+        _categoryMap = categoryMap;
         _stats = stats;
         _isLoading = false;
       });
+      
+      // Apply filters after loading data
+      _applyFilters();
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -98,6 +131,313 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         );
       }
     }
+  }
+
+  void _applyFilters() {
+    setState(() {
+      // Filter games based on selected filters
+      _filteredAllGames = _filterGames(_allGames);
+      _filteredScheduledGames = _filterGames(_scheduledGames);
+      _filteredCompletedGames = _filterGames(_completedGames);
+      
+      // Filter teams for standings
+      _filteredTeams = _filterTeams(_teams);
+    });
+  }
+
+  List<GameModel> _filterGames(List<GameModel> games) {
+    return games.where((game) {
+      // Filter by category (using team category names or resource type)
+      if (_selectedCategoryFilter != null && _selectedCategoryFilter!.isNotEmpty) {
+        final team1 = _teamMap[game.team1Id];
+        final team2 = _teamMap[game.team2Id];
+        final resource = _resourceMap[game.resourceId];
+        
+        // Check if any associated entity matches the category filter
+        bool matchesCategory = false;
+        
+        // Check team1 category
+        if (team1?.categoryId != null) {
+          final category1 = _categoryMap[team1!.categoryId!];
+          if (category1?.name == _selectedCategoryFilter) {
+            matchesCategory = true;
+          }
+        }
+        
+        // Check team2 category
+        if (team2?.categoryId != null) {
+          final category2 = _categoryMap[team2!.categoryId!];
+          if (category2?.name == _selectedCategoryFilter) {
+            matchesCategory = true;
+          }
+        }
+        
+        // Check resource type
+        if (resource?.type == _selectedCategoryFilter) {
+          matchesCategory = true;
+        }
+        
+        if (!matchesCategory) return false;
+      }
+      
+      // Filter by team
+      if (_selectedTeamFilter != null && _selectedTeamFilter!.isNotEmpty) {
+        if (game.team1Id != _selectedTeamFilter && game.team2Id != _selectedTeamFilter) {
+          return false;
+        }
+      }
+      
+      // Filter by resource
+      if (_selectedResourceFilter != null && _selectedResourceFilter!.isNotEmpty) {
+        if (game.resourceId != _selectedResourceFilter) {
+          return false;
+        }
+      }
+      
+      return true;
+    }).toList();
+  }
+
+  List<TeamModel> _filterTeams(List<TeamModel> teams) {
+    return teams.where((team) {
+      // Filter by category (using team category name)
+      if (_selectedCategoryFilter != null && _selectedCategoryFilter!.isNotEmpty) {
+        if (team.categoryId != null) {
+          final category = _categoryMap[team.categoryId!];
+          if (category?.name != _selectedCategoryFilter) {
+            return false;
+          }
+        } else {
+          // Team has no category, doesn't match category filter
+          return false;
+        }
+      }
+      
+      // Filter by specific team
+      if (_selectedTeamFilter != null && _selectedTeamFilter!.isNotEmpty) {
+        if (team.id != _selectedTeamFilter) {
+          return false;
+        }
+      }
+      
+      return true;
+    }).toList();
+  }
+
+  Widget _buildFilterBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.filter_list, size: 18, color: Colors.grey),
+              const SizedBox(width: 8),
+              const Text(
+                'Filters',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+              ),
+              const Spacer(),
+              if (_hasActiveFilters())
+                TextButton(
+                  onPressed: _clearAllFilters,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Clear All',
+                    style: TextStyle(color: Colors.red, fontSize: 14),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildCategoryFilter(),
+              _buildTeamFilter(),
+              _buildResourceFilter(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilter() {
+    final categories = _getAvailableCategories();
+    
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 160, maxWidth: 200),
+      child: DropdownButtonFormField<String>(
+        value: _selectedCategoryFilter,
+        decoration: InputDecoration(
+          labelText: 'Category',
+          prefixIcon: const Icon(Icons.category, size: 18),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          isDense: false,
+        ),
+        style: const TextStyle(fontSize: 14),
+        isExpanded: true,
+        items: [
+          const DropdownMenuItem<String>(
+            value: null,
+            child: Text('All Categories', style: TextStyle(fontSize: 14)),
+          ),
+          ...categories.map((category) => DropdownMenuItem<String>(
+            value: category,
+            child: Text(
+              category,
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          )),
+        ],
+        onChanged: (value) {
+          setState(() {
+            _selectedCategoryFilter = value;
+          });
+          _applyFilters();
+        },
+      ),
+    );
+  }
+
+  Widget _buildTeamFilter() {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 160, maxWidth: 200),
+      child: DropdownButtonFormField<String>(
+        value: _selectedTeamFilter,
+        decoration: InputDecoration(
+          labelText: 'Team',
+          prefixIcon: const Icon(Icons.group, size: 18),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          isDense: false,
+        ),
+        style: const TextStyle(fontSize: 14),
+        isExpanded: true,
+        items: [
+          const DropdownMenuItem<String>(
+            value: null,
+            child: Text('All Teams', style: TextStyle(fontSize: 14)),
+          ),
+          ..._teams.map((team) => DropdownMenuItem<String>(
+            value: team.id,
+            child: Text(
+              team.name,
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          )),
+        ],
+        onChanged: (value) {
+          setState(() {
+            _selectedTeamFilter = value;
+          });
+          _applyFilters();
+        },
+      ),
+    );
+  }
+
+  Widget _buildResourceFilter() {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 160, maxWidth: 200),
+      child: DropdownButtonFormField<String>(
+        value: _selectedResourceFilter,
+        decoration: InputDecoration(
+          labelText: 'Resource',
+          prefixIcon: const Icon(Icons.place, size: 18),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          isDense: false,
+        ),
+        style: const TextStyle(fontSize: 14),
+        isExpanded: true,
+        items: [
+          const DropdownMenuItem<String>(
+            value: null,
+            child: Text('All Resources', style: TextStyle(fontSize: 14)),
+          ),
+          ..._resources.map((resource) => DropdownMenuItem<String>(
+            value: resource.id,
+            child: Text(
+              resource.name,
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          )),
+        ],
+        onChanged: (value) {
+          setState(() {
+            _selectedResourceFilter = value;
+          });
+          _applyFilters();
+        },
+      ),
+    );
+  }
+
+  List<String> _getAvailableCategories() {
+    final categoryNames = <String>{};
+    
+    // Add team category names
+    for (final team in _teams) {
+      if (team.categoryId != null && team.categoryId!.isNotEmpty) {
+        final category = _categoryMap[team.categoryId!];
+        if (category != null) {
+          categoryNames.add(category.name);
+        }
+      }
+    }
+    
+    // Add resource types as categories
+    for (final resource in _resources) {
+      if (resource.type.isNotEmpty) {
+        categoryNames.add(resource.type);
+      }
+    }
+    
+    return categoryNames.toList()..sort();
+  }
+
+  bool _hasActiveFilters() {
+    return (_selectedCategoryFilter != null && _selectedCategoryFilter!.isNotEmpty) ||
+           (_selectedTeamFilter != null && _selectedTeamFilter!.isNotEmpty) ||
+           (_selectedResourceFilter != null && _selectedResourceFilter!.isNotEmpty);
+  }
+
+  void _clearAllFilters() {
+    setState(() {
+      _selectedCategoryFilter = null;
+      _selectedTeamFilter = null;
+      _selectedResourceFilter = null;
+    });
+    _applyFilters();
   }
 
   @override
@@ -135,15 +475,19 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
           tabs: [
             Tab(
               icon: const Icon(Icons.schedule),
-              text: 'All Games (${_allGames.length})',
+              text: 'All Games (${_filteredAllGames.isNotEmpty ? _filteredAllGames.length : _allGames.length})',
             ),
             Tab(
               icon: const Icon(Icons.event),
-              text: 'Scheduled (${_scheduledGames.length})',
+              text: 'Scheduled (${_filteredScheduledGames.isNotEmpty ? _filteredScheduledGames.length : _scheduledGames.length})',
             ),
             Tab(
               icon: const Icon(Icons.check_circle),
-              text: 'Completed (${_completedGames.length})',
+              text: 'Completed (${_filteredCompletedGames.isNotEmpty ? _filteredCompletedGames.length : _completedGames.length})',
+            ),
+            const Tab(
+              icon: Icon(Icons.leaderboard),
+              text: 'Standings',
             ),
           ],
         ),
@@ -223,13 +567,25 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
           : Column(
               children: [
                 if (_stats.isNotEmpty) _buildStatsHeader(),
+                _buildFilterBar(),
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _buildGamesTab(_allGames, 'No games scheduled yet'),
-                      _buildGamesTab(_scheduledGames, 'No upcoming games'),
-                      _buildGamesTab(_completedGames, 'No completed games yet'),
+                      _buildGamesTab(_hasActiveFilters() ? _filteredAllGames : _allGames, 'No games match the current filters'),
+                      _buildGamesTab(_hasActiveFilters() ? _filteredScheduledGames : _scheduledGames, 'No scheduled games match the current filters'),
+                      _buildGamesTab(_hasActiveFilters() ? _filteredCompletedGames : _completedGames, 'No completed games match the current filters'),
+                      TournamentStandingsWidget(
+                        standings: TournamentStandingsService.calculateStandings(
+                          tournamentId: widget.tournamentId,
+                          format: TournamentFormat.roundRobin, // Default format
+                          games: _hasActiveFilters() ? _filteredAllGames : _allGames,
+                          teams: _hasActiveFilters() ? _filteredTeams : _teams,
+                          phase: 'tournament',
+                        ),
+                        format: TournamentFormat.roundRobin,
+                        onRefresh: _loadGames,
+                      ),
                     ],
                   ),
                 ),
@@ -744,6 +1100,28 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   }
 
   Widget _buildDraggableGameCard(GameModel game) {
+    // Use gray background for completed games, team gradient for others
+    final bool isCompleted = game.status == GameStatus.completed;
+    final borderColor = isCompleted ? Colors.grey.shade400 : Colors.blue;
+    final backgroundColor = isCompleted ? Colors.grey.shade100 : Colors.white;
+    
+    // Don't make completed games draggable
+    if (isCompleted) {
+      return Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(2, 2),
+            ),
+          ],
+        ),
+        child: _buildCompactGameCard(game),
+      );
+    }
+    
     return Draggable<GameModel>(
       data: game,
       feedback: Material(
@@ -752,12 +1130,12 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         child: Container(
           width: 320,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue, width: 2),
+            border: Border.all(color: borderColor, width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
+                color: borderColor.withOpacity(0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -937,8 +1315,11 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
 
   // New compact game card for grid view
   Widget _buildCompactGameCard(GameModel game) {
-    final gradient = _createTeamGradient(game);
-    final borderColor = _getTeamBorderColor(game);
+    // Use gray background for completed games, team gradient for others
+    final bool isCompleted = game.status == GameStatus.completed;
+    final gradient = isCompleted ? null : _createTeamGradient(game);
+    final borderColor = isCompleted ? Colors.grey.shade300 : _getTeamBorderColor(game);
+    final backgroundColor = isCompleted ? Colors.grey.shade100 : null;
     
     return Container(
       width: double.infinity,
@@ -946,9 +1327,9 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       padding: const EdgeInsets.all(8), // Increased padding
       decoration: BoxDecoration(
         gradient: gradient,
-        color: gradient == null ? Colors.white : null,
+        color: backgroundColor ?? (gradient == null ? Colors.white : null),
         borderRadius: BorderRadius.circular(8), // Larger radius
-        border: Border.all(color: borderColor, width: gradient != null ? 2 : 1),
+        border: Border.all(color: borderColor, width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1202,8 +1583,11 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   }
 
   Widget _buildGameCard(GameModel game) {
-    final gradient = _createTeamGradient(game);
-    final borderColor = _getTeamBorderColor(game);
+    // Use gray background for completed games, team gradient for others
+    final bool isCompleted = game.status == GameStatus.completed;
+    final gradient = isCompleted ? null : _createTeamGradient(game);
+    final borderColor = isCompleted ? Colors.grey.shade300 : _getTeamBorderColor(game);
+    final backgroundColor = isCompleted ? Colors.grey.shade100 : null;
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -1211,8 +1595,9 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       child: Container(
         decoration: BoxDecoration(
           gradient: gradient,
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(12),
-          border: gradient != null ? Border.all(color: borderColor, width: 2) : null,
+          border: Border.all(color: borderColor, width: 2),
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -1236,7 +1621,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
               ),
               const SizedBox(height: 12),
               
-              // Teams section with color indicators
+              // Teams section with color indicators and winner highlighting
               if (game.hasTeams) ...[
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -1249,28 +1634,73 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                     children: [
                       // Team 1
                       Expanded(
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: _getTeamColor(game.team1Id, defaultColor: Colors.blue),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _teamMap[game.team1Id]?.name ?? 'Team 1',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _isWinner(game, game.team1Id) 
+                                ? Colors.amber.withOpacity(0.2)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: _isWinner(game, game.team1Id)
+                                ? Border.all(color: Colors.amber, width: 2)
+                                : null,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: _getTeamColor(game.team1Id, defaultColor: Colors.blue),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
                                 ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              if (_isWinner(game, game.team1Id))
+                                const Icon(
+                                  Icons.emoji_events,
+                                  color: Colors.amber,
+                                  size: 18,
+                                ),
+                              if (_isWinner(game, game.team1Id))
+                                const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  _teamMap[game.team1Id]?.name ?? 'Team 1',
+                                  style: TextStyle(
+                                    fontWeight: _isWinner(game, game.team1Id) 
+                                        ? FontWeight.bold 
+                                        : FontWeight.w600,
+                                    fontSize: 16,
+                                    color: _isWinner(game, game.team1Id) 
+                                        ? Colors.amber.shade800 
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              if (game.hasResults && game.team1Score != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _isWinner(game, game.team1Id) 
+                                        ? Colors.amber.shade100
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${game.team1Score}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: _isWinner(game, game.team1Id) 
+                                          ? Colors.amber.shade800
+                                          : Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                       
@@ -1293,30 +1723,77 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                       
                       // Team 2
                       Expanded(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _teamMap[game.team2Id]?.name ?? 'Team 2',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _isWinner(game, game.team2Id) 
+                                ? Colors.amber.withOpacity(0.2)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: _isWinner(game, game.team2Id)
+                                ? Border.all(color: Colors.amber, width: 2)
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              if (game.hasResults && game.team2Score != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: _isWinner(game, game.team2Id) 
+                                        ? Colors.amber.shade100
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${game.team2Score}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: _isWinner(game, game.team2Id) 
+                                          ? Colors.amber.shade800
+                                          : Colors.grey.shade700,
+                                    ),
+                                  ),
                                 ),
-                                textAlign: TextAlign.end,
+                              if (game.hasResults && game.team2Score != null)
+                                const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _teamMap[game.team2Id]?.name ?? 'Team 2',
+                                  style: TextStyle(
+                                    fontWeight: _isWinner(game, game.team2Id) 
+                                        ? FontWeight.bold 
+                                        : FontWeight.w600,
+                                    fontSize: 16,
+                                    color: _isWinner(game, game.team2Id) 
+                                        ? Colors.amber.shade800 
+                                        : Colors.black87,
+                                  ),
+                                  textAlign: TextAlign.end,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: _getTeamColor(game.team2Id, defaultColor: Colors.green),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                              if (_isWinner(game, game.team2Id))
+                                const SizedBox(width: 4),
+                              if (_isWinner(game, game.team2Id))
+                                const Icon(
+                                  Icons.emoji_events,
+                                  color: Colors.amber,
+                                  size: 18,
+                                ),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: _getTeamColor(game.team2Id, defaultColor: Colors.green),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -1415,11 +1892,25 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                     label: 'Edit',
                     onPressed: game.canEdit ? () => _editGame(game) : null,
                   ),
-                  _buildActionButton(
-                    icon: Icons.play_arrow,
-                    label: 'Start',
-                    onPressed: game.canStart ? () => _startGame(game) : null,
-                  ),
+                  if (game.status == GameStatus.scheduled) ...[
+                    _buildActionButton(
+                      icon: Icons.play_arrow,
+                      label: 'Start',
+                      onPressed: game.canStart ? () => _startGame(game) : null,
+                    ),
+                  ] else if (game.status == GameStatus.inProgress) ...[
+                    _buildActionButton(
+                      icon: Icons.score,
+                      label: 'Score',
+                      onPressed: () => _showScoreDialog(game),
+                    ),
+                  ] else if (game.status == GameStatus.completed) ...[
+                    _buildActionButton(
+                      icon: Icons.edit_note,
+                      label: 'Edit Score',
+                      onPressed: () => _showScoreDialog(game),
+                    ),
+                  ],
                   _buildActionButton(
                     icon: Icons.visibility,
                     label: 'View',
@@ -1858,7 +2349,448 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   void _showHelpDialog() {}
   void _showGameOptions(GameModel game) {}
   void _showCompleteGameDialog(GameModel game) {}
-  Future<void> _startGame(GameModel game) async {}
+
+  void _showScoreDialog(GameModel game) {
+    final team1ScoreController = TextEditingController(
+      text: game.team1Score?.toString() ?? '',
+    );
+    final team2ScoreController = TextEditingController(
+      text: game.team2Score?.toString() ?? '',
+    );
+    final notesController = TextEditingController(text: game.notes ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Record Score - ${game.displayName}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Teams and current status
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: _getTeamColor(game.team1Id, defaultColor: Colors.blue),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _teamMap[game.team1Id]?.name ?? 'Team 1',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const Text('VS', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Expanded(
+                          child: Text(
+                            _teamMap[game.team2Id]?.name ?? 'Team 2',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: _getTeamColor(game.team2Id, defaultColor: Colors.green),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.grey),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          game.status == GameStatus.completed 
+                            ? Icons.check_circle 
+                            : Icons.play_arrow,
+                          color: game.status == GameStatus.completed 
+                            ? Colors.green 
+                            : Colors.orange,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          game.statusDisplayName,
+                          style: TextStyle(
+                            color: game.status == GameStatus.completed 
+                              ? Colors.green 
+                              : Colors.orange,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Score input section
+              Row(
+                children: [
+                  // Team 1 score
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(
+                          _teamMap[game.team1Id]?.name ?? 'Team 1',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: team1ScoreController,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          decoration: InputDecoration(
+                            hintText: '0',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12, 
+                              horizontal: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 16),
+                  
+                  // VS divider
+                  const Text(
+                    'VS',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 16),
+                  
+                  // Team 2 score
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(
+                          _teamMap[game.team2Id]?.name ?? 'Team 2',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: team2ScoreController,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          decoration: InputDecoration(
+                            hintText: '0',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12, 
+                              horizontal: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              
+              // Notes section
+              TextFormField(
+                controller: notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notes (optional)',
+                  hintText: 'Add any game notes...',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          if (game.status == GameStatus.inProgress) ...[
+            ElevatedButton(
+              onPressed: () => _updateScore(
+                game,
+                team1ScoreController,
+                team2ScoreController,
+                notesController,
+                false, // Don't complete, just update
+              ),
+              child: const Text('Update Score'),
+            ),
+            ElevatedButton(
+              onPressed: () => _updateScore(
+                game,
+                team1ScoreController,
+                team2ScoreController,
+                notesController,
+                true, // Complete the game
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Complete Game'),
+            ),
+          ] else ...[
+            ElevatedButton(
+              onPressed: () => _updateScore(
+                game,
+                team1ScoreController,
+                team2ScoreController,
+                notesController,
+                true, // Complete the game
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Complete Game'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateScore(
+    GameModel game,
+    TextEditingController team1ScoreController,
+    TextEditingController team2ScoreController,
+    TextEditingController notesController,
+    bool completeGame,
+  ) async {
+    try {
+      // Parse scores
+      final team1Score = int.tryParse(team1ScoreController.text) ?? 0;
+      final team2Score = int.tryParse(team2ScoreController.text) ?? 0;
+      final notes = notesController.text.trim().isEmpty ? null : notesController.text.trim();
+
+      // Determine winner if completing the game
+      String? winnerId;
+      if (completeGame && team1Score != team2Score) {
+        winnerId = team1Score > team2Score ? game.team1Id : game.team2Id;
+      }
+
+      // Close the dialog first
+      Navigator.of(context).pop();
+
+      if (completeGame) {
+        // Complete the game with final scores
+        await _repository.completeGame(
+          gameId: game.id,
+          team1Score: team1Score,
+          team2Score: team2Score,
+          winnerId: winnerId,
+          refereeNotes: notes,
+        );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Game completed: ${_teamMap[game.team1Id]?.name ?? 'Team 1'} $team1Score - $team2Score ${_teamMap[game.team2Id]?.name ?? 'Team 2'}',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        // Update score without completing - use direct database update
+        await _updateScoreInDatabase(
+          gameId: game.id,
+          team1Score: team1Score,
+          team2Score: team2Score,
+          winnerId: winnerId,
+          notes: notes,
+        );
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Score updated: $team1Score - $team2Score'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
+      }
+
+      // Refresh games list
+      await _loadGames();
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating score: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 15), // Extended duration to read/copy error
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Copy',
+              textColor: Colors.white,
+              onPressed: () {
+                // Copy error to clipboard if available
+                print('Error details: $e');
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Helper method to check if a team is the winner of a game
+  bool _isWinner(GameModel game, String? teamId) {
+    // Only show winner for completed games with a winner
+    if (game.status != GameStatus.completed || 
+        game.winnerId == null || 
+        teamId == null) {
+      return false;
+    }
+    return game.winnerId == teamId;
+  }
+
+  Future<void> _updateScoreInDatabase({
+    required String gameId,
+    required int team1Score,
+    required int team2Score,
+    String? winnerId,
+    String? notes,
+  }) async {
+    // Create a temporary GameRepository client to access Supabase directly
+    final supabase = Supabase.instance.client;
+    
+    final updateData = <String, dynamic>{
+      'team1_score': team1Score,
+      'team2_score': team2Score,
+      'winner_id': winnerId,
+    };
+    
+    if (notes != null) {
+      updateData['notes'] = notes;
+    }
+    
+    await supabase
+        .from('games')
+        .update(updateData)
+        .eq('id', gameId);
+  }
+
+  Future<void> _startGame(GameModel game) async {
+    try {
+      // Show confirmation dialog
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Start Game'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Are you ready to start this game?'),
+              const SizedBox(height: 12),
+              Text(
+                '${_teamMap[game.team1Id]?.name ?? 'Team 1'} vs ${_teamMap[game.team2Id]?.name ?? 'Team 2'}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              if (game.scheduledDateTime != null) ...[
+                const SizedBox(height: 8),
+                Text('Scheduled: ${game.scheduledDateTime}'),
+              ],
+              if (game.resourceId != null) ...[
+                const SizedBox(height: 8),
+                Text('Court: ${_resourceMap[game.resourceId]?.name ?? 'Unknown'}'),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Start Game'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        // Start the game using repository
+        await _repository.startGame(game.id);
+        
+        // Refresh games list
+        await _loadGames();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Game started: ${game.displayName}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          // Automatically open score recording dialog
+          _showScoreDialog(game.copyWith(status: GameStatus.inProgress));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error starting game: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 15), // Extended duration to read/copy error
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Copy',
+              textColor: Colors.white,
+              onPressed: () {
+                // Copy error to clipboard if available
+                print('Error details: $e');
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
   
   // Example of enhanced conflict messaging
   void _showConflictExample(GameModel game) {
@@ -2298,6 +3230,16 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
 
   // Grid-specific draggable game card
   Widget _buildGridDraggableGameCard(GameModel game) {
+    // Use gray background for completed games, team gradient for others
+    final bool isCompleted = game.status == GameStatus.completed;
+    final borderColor = isCompleted ? Colors.grey.shade400 : Colors.blue;
+    final backgroundColor = isCompleted ? Colors.grey.shade100 : Colors.white;
+    
+    // Don't make completed games draggable
+    if (isCompleted) {
+      return _buildCompactGameCard(game);
+    }
+    
     return Draggable<GameModel>(
       data: game,
       feedback: Material(
@@ -2307,12 +3249,12 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
           width: 280, // Increased to match cell width
           height: 90, // Increased to match cell height
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.blue, width: 2),
+            border: Border.all(color: borderColor, width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
+                color: borderColor.withOpacity(0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
