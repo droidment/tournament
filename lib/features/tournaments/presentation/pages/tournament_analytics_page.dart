@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/models/game_model.dart';
 import '../../../../core/models/team_model.dart';
 import '../../data/repositories/game_repository.dart';
@@ -199,7 +200,7 @@ class _TournamentAnalyticsPageState extends State<TournamentAnalyticsPage>
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => context.pop(),
           tooltip: 'Back to Tournament Management',
         ),
         title: Column(
