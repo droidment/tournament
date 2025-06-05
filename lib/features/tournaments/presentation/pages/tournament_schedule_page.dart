@@ -579,8 +579,8 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                         standings: TournamentStandingsService.calculateStandings(
                           tournamentId: widget.tournamentId,
                           format: TournamentFormat.roundRobin, // Default format
-                          games: _hasActiveFilters() ? _filteredAllGames : _allGames,
-                          teams: _hasActiveFilters() ? _filteredTeams : _teams,
+                          games: _allGames, // Always use all games for accurate standings calculation
+                          teams: _hasActiveFilters() ? _filteredTeams : _teams, // Filter teams for display
                           phase: 'tournament',
                         ),
                         format: TournamentFormat.roundRobin,
