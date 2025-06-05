@@ -32,6 +32,8 @@ dependencies:
   share_plus: ^11.0.0
   # Date/Time
   table_calendar: ^3.0.9
+  # Charts and visualization
+  fl_chart: ^0.68.0
   # Storage
   shared_preferences: ^2.2.2
   # Notifications

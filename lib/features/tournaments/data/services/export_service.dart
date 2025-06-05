@@ -329,7 +329,7 @@ class ExportService {
     final exportData = {
       'tournament': tournamentName,
       'exportDate': DateTime.now().toIso8601String(),
-      'format': standings.format.name,
+      'format': standings.format,
       'totalTeams': standings.teamStandings.length,
       'standings': standings.teamStandings.map((team) => {
         'position': team.position,
@@ -356,7 +356,7 @@ class ExportService {
     buffer.writeln('${tournamentName.toUpperCase()} - TOURNAMENT STANDINGS');
     buffer.writeln('=' * 80);
     buffer.writeln('Generated: ${DateTime.now().toString()}');
-    buffer.writeln('Format: ${standings.format.name}');
+    buffer.writeln('Format: ${standings.format}');
     buffer.writeln('Total Teams: ${standings.teamStandings.length}');
     buffer.writeln('=' * 80);
     buffer.writeln();
@@ -415,7 +415,7 @@ class ExportService {
     buffer.writeln('    <h1>$tournamentName</h1>');
     buffer.writeln('    <h2>🏆 Tournament Standings</h2>');
     buffer.writeln('    <p>Generated: ${DateTime.now().toString()}</p>');
-    buffer.writeln('    <p>Format: ${standings.format.name} | Total Teams: ${standings.teamStandings.length}</p>');
+    buffer.writeln('    <p>Format: ${standings.format} | Total Teams: ${standings.teamStandings.length}</p>');
     buffer.writeln('  </div>');
 
     buffer.writeln('  <table class="standings-table">');
@@ -491,7 +491,7 @@ class ExportService {
         'capacity': resource.capacity,
       }).toList(),
       'standings': {
-        'format': standings.format.name,
+        'format': standings.format,
         'teams': standings.teamStandings.map((team) => {
           'position': team.position,
           'teamId': team.teamId,

@@ -565,38 +565,114 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                if (_stats.isNotEmpty) _buildStatsHeader(),
-                _buildFilterBar(),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildGamesTab(_hasActiveFilters() ? _filteredAllGames : _allGames, 'No games match the current filters'),
-                      _buildGamesTab(_hasActiveFilters() ? _filteredScheduledGames : _scheduledGames, 'No scheduled games match the current filters'),
-                      _buildGamesTab(_hasActiveFilters() ? _filteredCompletedGames : _completedGames, 'No completed games match the current filters'),
-                      TournamentStandingsWidget(
-                        standings: TournamentStandingsService.calculateStandings(
-                          tournamentId: widget.tournamentId,
-                          format: TournamentFormat.roundRobin, // Default format
-                          games: _allGames, // Always use all games for accurate standings calculation
-                          teams: _hasActiveFilters() ? _filteredTeams : _teams, // Filter teams for display
-                          phase: 'tournament',
-                        ),
-                        format: TournamentFormat.roundRobin,
-                        onRefresh: _loadGames,
-                      ),
-                    ],
+          : NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) {
+                return [
+                  SliverList(
+                    delegate: SliverChildListDelegate([
+                      // Stats Header
+                      if (_stats.isNotEmpty) _buildStatsHeader(),
+                      
+                      // Filter Bar
+                      _buildFilterBar(),
+                      
+                      // View Segmented Button
+                      _buildViewSegmentedButton(),
+                    ]),
                   ),
-                ),
-              ],
+                ];
+              },
+              body: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildGamesTabContent(_hasActiveFilters() ? _filteredAllGames : _allGames, 'No games match the current filters'),
+                  _buildGamesTabContent(_hasActiveFilters() ? _filteredScheduledGames : _scheduledGames, 'No scheduled games match the current filters'),
+                  _buildGamesTabContent(_hasActiveFilters() ? _filteredCompletedGames : _completedGames, 'No completed games match the current filters'),
+                  TournamentStandingsWidget(
+                    standings: TournamentStandingsService.calculateStandings(
+                      tournamentId: widget.tournamentId,
+                      format: TournamentFormat.roundRobin, // Default format
+                      games: _allGames, // Always use all games for accurate standings calculation
+                      teams: _hasActiveFilters() ? _filteredTeams : _teams, // Filter teams for display
+                      phase: 'tournament',
+                    ),
+                    format: TournamentFormat.roundRobin,
+                    onRefresh: _loadGames,
+                  ),
+                ],
+              ),
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showGenerateScheduleDialog,
         icon: const Icon(Icons.auto_fix_high),
         label: const Text('Generate Schedule'),
       ),
+    );
+  }
+
+  // Extract view segmented button into its own widget
+  Widget _buildViewSegmentedButton() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Colors.white,
+      child: Row(
+        children: [
+          Text(
+            'View:',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(width: 12),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(
+                value: 'list',
+                label: Text('List'),
+                icon: Icon(Icons.list),
+              ),
+              ButtonSegment(
+                value: 'timeline',
+                label: Text('Timeline'),
+                icon: Icon(Icons.calendar_view_day),
+              ),
+              ButtonSegment(
+                value: 'grid',
+                label: Text('Grid'),
+                icon: Icon(Icons.grid_view),
+              ),
+            ],
+            selected: {_isScheduleView ? (_isGridView ? 'grid' : 'timeline') : 'list'},
+            onSelectionChanged: (Set<String> newSelection) {
+              setState(() {
+                final selected = newSelection.first;
+                _isScheduleView = selected != 'list';
+                _isGridView = selected == 'grid';
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Modified games tab content for NestedScrollView
+  Widget _buildGamesTabContent(List<GameModel> games, String emptyMessage) {
+    if (games.isEmpty) {
+      return _buildEmptyState(emptyMessage);
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadGames,
+      child: _isScheduleView 
+          ? _isGridView 
+            ? _buildGridView(games) // Full screen grid
+            : SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildScheduleView(games),
+              )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: _buildListView(games),
+            ),
     );
   }
 
@@ -638,74 +714,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
     );
   }
 
-  Widget _buildGamesTab(List<GameModel> games, String emptyMessage) {
-    if (games.isEmpty) {
-      return _buildEmptyState(emptyMessage);
-    }
 
-    return RefreshIndicator(
-      onRefresh: _loadGames,
-      child: Column(
-        children: [
-          // View toggle controls
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Text(
-                  'View:',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(width: 12),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'list',
-                      label: Text('List'),
-                      icon: Icon(Icons.list),
-                    ),
-                    ButtonSegment(
-                      value: 'timeline',
-                      label: Text('Timeline'),
-                      icon: Icon(Icons.calendar_view_day),
-                    ),
-                    ButtonSegment(
-                      value: 'grid',
-                      label: Text('Grid'),
-                      icon: Icon(Icons.grid_view),
-                    ),
-                  ],
-                  selected: {_isScheduleView ? (_isGridView ? 'grid' : 'timeline') : 'list'},
-                  onSelectionChanged: (Set<String> newSelection) {
-                    setState(() {
-                      final selected = newSelection.first;
-                      _isScheduleView = selected != 'list';
-                      _isGridView = selected == 'grid';
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          
-          // Content area - full screen for grid, padded for others
-          Expanded(
-            child: _isScheduleView 
-                ? _isGridView 
-                  ? _buildGridView(games) // Full screen grid
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildScheduleView(games),
-                    )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: _buildListView(games),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildListView(List<GameModel> games) {
     return ListView.builder(
