@@ -3058,10 +3058,21 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
     // Create a temporary GameRepository client to access Supabase directly
     final supabase = Supabase.instance.client;
     
+    // Find the game to get team IDs for winner determination
+    final game = _allGames.firstWhere((g) => g.id == gameId);
+    
+    // Auto-determine winner if not provided and scores are different
+    String? finalWinnerId = winnerId;
+    if (finalWinnerId == null && team1Score != team2Score) {
+      finalWinnerId = team1Score > team2Score ? game.team1Id : game.team2Id;
+    }
+    
     final updateData = <String, dynamic>{
       'team1_score': team1Score,
       'team2_score': team2Score,
-      'winner_id': winnerId,
+      'winner_id': finalWinnerId,
+      'status': 'completed', // Auto-complete game when scores are updated
+      'completed_at': DateTime.now().toIso8601String(),
     };
     
     if (notes != null) {
