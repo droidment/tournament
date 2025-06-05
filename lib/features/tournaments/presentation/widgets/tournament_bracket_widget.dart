@@ -25,11 +25,15 @@ class TournamentBracketWidget extends StatefulWidget {
 class _TournamentBracketWidgetState extends State<TournamentBracketWidget> {
   final ScrollController _horizontalController = ScrollController();
   final ScrollController _verticalController = ScrollController();
+  final ScrollController _winnersHorizontalController = ScrollController();
+  final ScrollController _losersHorizontalController = ScrollController();
 
   @override
   void dispose() {
     _horizontalController.dispose();
     _verticalController.dispose();
+    _winnersHorizontalController.dispose();
+    _losersHorizontalController.dispose();
     super.dispose();
   }
 
@@ -131,16 +135,21 @@ class _TournamentBracketWidgetState extends State<TournamentBracketWidget> {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Scrollbar(
-        controller: _horizontalController,
+        controller: _verticalController,
         thumbVisibility: true,
+        trackVisibility: true,
         child: Scrollbar(
-          controller: _verticalController,
+          controller: _horizontalController,
           thumbVisibility: true,
+          trackVisibility: true,
+          notificationPredicate: (ScrollNotification notification) {
+            return notification.depth == 1;
+          },
           child: SingleChildScrollView(
-            controller: _horizontalController,
-            scrollDirection: Axis.horizontal,
+            controller: _verticalController,
             child: SingleChildScrollView(
-              controller: _verticalController,
+              controller: _horizontalController,
+              scrollDirection: Axis.horizontal,
               child: _buildBracketTree(),
             ),
           ),
@@ -150,59 +159,97 @@ class _TournamentBracketWidgetState extends State<TournamentBracketWidget> {
   }
 
   Widget _buildDoubleEliminationBracket() {
-    final winnersBracket = widget.bracket.winnersBracket;
-    final losersBracket = widget.bracket.losersBracket;
+    // For now, treat double elimination as single elimination to avoid complex layout issues
+    return _buildSimplifiedBracket();
+  }
 
+  Widget _buildSimplifiedBracket() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Winners Bracket
-          Text(
-            'Winners Bracket',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.green[700],
+      child: Scrollbar(
+        controller: _verticalController,
+        thumbVisibility: true,
+        trackVisibility: true,
+        child: Scrollbar(
+          controller: _horizontalController,
+          thumbVisibility: true,
+          trackVisibility: true,
+          notificationPredicate: (ScrollNotification notification) {
+            return notification.depth == 1;
+          },
+          child: SingleChildScrollView(
+            controller: _verticalController,
+            child: SingleChildScrollView(
+              controller: _horizontalController,
+              scrollDirection: Axis.horizontal,
+              child: _buildSimpleRoundsRow(),
             ),
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            flex: 3,
-            child: _buildBracketSection(winnersBracket),
-          ),
-          const SizedBox(height: 16),
-          const Divider(),
-          const SizedBox(height: 16),
-          // Losers Bracket
-          Text(
-            'Losers Bracket',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Colors.red[700],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            flex: 2,
-            child: _buildBracketSection(losersBracket),
-          ),
-          // Grand Final
-          if (widget.bracket.rounds.any((r) => r.bracketType == 'grand_final'))
-            _buildGrandFinal(),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildBracketSection(List<BracketRoundModel> rounds) {
+  Widget _buildSimpleRoundsRow() {
+    final rounds = widget.bracket.rounds;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: rounds.asMap().entries.map((entry) {
+        final index = entry.key;
+        final round = entry.value;
+        
+        return Row(
+          children: [
+            _buildSimpleRoundColumn(round, index),
+            if (index < rounds.length - 1)
+              const SizedBox(width: 40), // Simple spacing instead of connector lines
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSimpleRoundColumn(BracketRoundModel round, int roundIndex) {
+    return Column(
+      children: [
+        // Round header
+        Container(
+          width: 200,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            round.roundName,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Matches with simple spacing
+        SizedBox(
+          width: 200,
+          child: Column(
+            children: round.matches.map((match) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: _buildMatchCard(match),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBracketSection(List<BracketRoundModel> rounds, [ScrollController? scrollController]) {
     if (rounds.isEmpty) return const SizedBox.shrink();
 
+    final controller = scrollController ?? _horizontalController;
     return Scrollbar(
-      controller: _horizontalController,
+      controller: controller,
       thumbVisibility: true,
       child: SingleChildScrollView(
-        controller: _horizontalController,
+        controller: controller,
         scrollDirection: Axis.horizontal,
         child: _buildRoundsRow(rounds),
       ),
@@ -233,14 +280,6 @@ class _TournamentBracketWidgetState extends State<TournamentBracketWidget> {
   }
 
   Widget _buildRoundColumn(BracketRoundModel round, int roundIndex) {
-    const matchHeight = 80.0;
-    const matchSpacing = 16.0;
-    final totalMatches = round.matches.length;
-    
-    // Calculate vertical spacing based on round progression
-    final verticalSpacing = pow(2, roundIndex) * matchSpacing;
-    final topOffset = verticalSpacing / 2;
-
     return Column(
       children: [
         // Round header
@@ -256,20 +295,13 @@ class _TournamentBracketWidgetState extends State<TournamentBracketWidget> {
           ),
         ),
         const SizedBox(height: 16),
-        // Matches
+        // Matches with simpler spacing to avoid overflow
         SizedBox(
           width: 200,
           child: Column(
-            children: round.matches.asMap().entries.map((entry) {
-              final matchIndex = entry.key;
-              final match = entry.value;
-              final yOffset = topOffset + (matchIndex * (matchHeight + verticalSpacing));
-              
+            children: round.matches.map((match) {
               return Container(
-                margin: EdgeInsets.only(
-                  top: matchIndex == 0 ? yOffset : verticalSpacing - matchSpacing,
-                  bottom: matchSpacing,
-                ),
+                margin: const EdgeInsets.only(bottom: 16),
                 child: _buildMatchCard(match),
               );
             }).toList(),

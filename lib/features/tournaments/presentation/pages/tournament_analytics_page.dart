@@ -197,6 +197,11 @@ class _TournamentAnalyticsPageState extends State<TournamentAnalyticsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Back to Tournament Management',
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

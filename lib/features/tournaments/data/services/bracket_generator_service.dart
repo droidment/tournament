@@ -310,15 +310,16 @@ class BracketGeneratorService {
       } else {
         // Regular match
         matches.add(BracketMatchModel(
-          matchId: 'r1_m${matches.length + 1}',
+          matchNumber: matches.length + 1,
+          position: matches.length + 1,
           team1Id: team1.id,
           team2Id: team2.id,
           winnerId: null,
           team1Score: null,
           team2Score: null,
-          status: 'pending',
-          scheduledDate: null,
-          scheduledTime: null,
+          isComplete: false,
+          isBye: false,
+          scheduledDateTime: null,
         ));
       }
     }
@@ -341,15 +342,16 @@ class BracketGeneratorService {
     final matches = <BracketMatchModel>[];
     for (int i = 0; i < currentRoundMatches; i++) {
       matches.add(BracketMatchModel(
-        matchId: 'r${round}_m${i + 1}',
+        matchNumber: i + 1,
+        position: i + 1,
         team1Id: null,
         team2Id: null,
         winnerId: null,
         team1Score: null,
         team2Score: null,
-        status: 'pending',
-        scheduledDate: null,
-        scheduledTime: null,
+        isComplete: false,
+        isBye: false,
+        scheduledDateTime: null,
       ));
     }
     
@@ -408,7 +410,7 @@ class BracketGeneratorService {
 
     for (final round in rounds) {
       for (final match in round.matches) {
-        if (match.status == 'bye' || match.team1Id == null || match.team2Id == null) {
+        if (match.isBye || match.team1Id == null || match.team2Id == null) {
           continue; // Skip byes and TBD matches
         }
 
@@ -423,19 +425,19 @@ class BracketGeneratorService {
             scheduledDate: currentDateTime,
             scheduledTime: '${currentDateTime.hour.toString().padLeft(2, '0')}:${currentDateTime.minute.toString().padLeft(2, '0')}',
             estimatedDuration: gameDurationMinutes,
-            notes: 'Bracket: ${match.matchId}',
+            notes: 'Bracket: Match ${match.matchNumber}',
             isPublished: true,
           );
 
           // Link game to bracket match
           // This would require updating the match model to store gameId
-          print('🎮 Created bracket game: ${game.id} for match ${match.matchId}');
+          print('🎮 Created bracket game: ${game.id} for match ${match.matchNumber}');
 
           // Move to next time slot
           currentDateTime = currentDateTime.add(Duration(minutes: gameDurationMinutes + timeBetweenGamesMinutes));
           resourceIndex++;
         } catch (e) {
-          print('❌ Error creating game for match ${match.matchId}: $e');
+          print('❌ Error creating game for match ${match.matchNumber}: $e');
           throw Exception('Failed to create bracket game: $e');
         }
       }

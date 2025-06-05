@@ -15,6 +15,8 @@ import 'package:teamapp3/features/tournaments/presentation/pages/tournament_team
 import 'package:teamapp3/features/tournaments/presentation/pages/tournament_management_page.dart';
 import 'package:teamapp3/features/tournaments/presentation/pages/tournament_resources_page.dart';
 import 'package:teamapp3/features/tournaments/presentation/pages/tournament_schedule_page.dart';
+import 'package:teamapp3/features/tournaments/presentation/pages/tournament_analytics_page.dart';
+import 'package:teamapp3/features/tournaments/presentation/pages/tournament_bracket_page.dart';
 import 'package:teamapp3/features/tournaments/bloc/tournament_bloc.dart';
 import 'package:teamapp3/features/tournaments/bloc/category_bloc.dart';
 import 'package:teamapp3/features/tournaments/bloc/team_bloc.dart';
@@ -193,6 +195,28 @@ class AppRouter {
             final tournamentId = state.pathParameters['id']!;
             final tournamentName = state.uri.queryParameters['name'] ?? 'Tournament';
             return TournamentSchedulePage(
+              tournamentId: tournamentId,
+              tournamentName: tournamentName,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/tournaments/:id/analytics',
+          builder: (context, state) {
+            final tournamentId = state.pathParameters['id']!;
+            final tournamentName = state.uri.queryParameters['name'] ?? 'Tournament';
+            return TournamentAnalyticsPage(
+              tournamentId: tournamentId,
+              tournamentName: tournamentName,
+            );
+          },
+        ),
+        GoRoute(
+          path: '/tournaments/:id/bracket',
+          builder: (context, state) {
+            final tournamentId = state.pathParameters['id']!;
+            final tournamentName = state.uri.queryParameters['name'] ?? 'Tournament';
+            return TournamentBracketPage(
               tournamentId: tournamentId,
               tournamentName: tournamentName,
             );

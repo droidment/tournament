@@ -216,6 +216,28 @@ class _TournamentManagementPageState extends State<TournamentManagementPage> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildActionButton(
+                  icon: Icons.analytics,
+                  label: 'Analytics',
+                  onPressed: () => context.go(
+                    '/tournaments/${tournament.id}/analytics?name=${Uri.encodeComponent(tournament.name)}',
+                  ),
+                ),
+                _buildActionButton(
+                  icon: Icons.account_tree,
+                  label: 'Bracket',
+                  onPressed: () => context.go(
+                    '/tournaments/${tournament.id}/bracket?name=${Uri.encodeComponent(tournament.name)}',
+                  ),
+                ),
+                // Add empty placeholder for symmetry
+                const SizedBox(width: 70),
+              ],
+            ),
           ],
         ),
       ),

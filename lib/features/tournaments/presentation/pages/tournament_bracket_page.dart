@@ -130,7 +130,6 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
         for (int i = 0; i < roundGames.length; i++) {
           final game = roundGames[i];
           matches.add(BracketMatchModel(
-            matchId: 'r${roundNumber}_m${i + 1}',
             matchNumber: i + 1,
             position: i + 1,
             team1Id: game.team1Id,
@@ -197,6 +196,11 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Back to Tournament Management',
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
