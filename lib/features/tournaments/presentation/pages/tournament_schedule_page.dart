@@ -13,6 +13,7 @@ import '../../data/repositories/category_repository.dart';
 import '../widgets/generate_schedule_dialog.dart';
 import '../widgets/tournament_standings_widget.dart';
 import '../../data/services/tournament_standings_service.dart';
+import '../../data/services/export_service.dart';
 import '../../data/models/tournament_model.dart';
 import '../../../../core/models/tournament_standings_model.dart';
 
@@ -505,7 +506,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                   _showDeleteAllGamesDialog();
                   break;
                 case 'export':
-                  // TODO: Implement export functionality
+                  _showExportDialog();
                   break;
               }
             },
@@ -2340,6 +2341,359 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 6),
             behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showExportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.download, color: Colors.blue),
+            const SizedBox(width: 8),
+            const Text('Export Tournament Data'),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Choose what to export and the format:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 20),
+              
+              // Export options
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.schedule, color: Colors.blue, size: 20),
+                          const SizedBox(width: 8),
+                          const Text('Tournament Schedule', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Export ${_hasActiveFilters() ? _filteredAllGames.length : _allGames.length} games with dates, times, teams, and scores'),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          _buildExportButton('CSV', ExportFormat.csv, _exportSchedule, Colors.green),
+                          _buildExportButton('JSON', ExportFormat.json, _exportSchedule, Colors.blue),
+                          _buildExportButton('HTML', ExportFormat.html, _exportSchedule, Colors.orange),
+                          _buildExportButton('TXT', ExportFormat.txt, _exportSchedule, Colors.grey),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                          const SizedBox(width: 8),
+                          const Text('Tournament Standings', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Export current standings with points, wins, losses, and statistics'),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          _buildExportButton('CSV', ExportFormat.csv, _exportStandings, Colors.green),
+                          _buildExportButton('JSON', ExportFormat.json, _exportStandings, Colors.blue),
+                          _buildExportButton('HTML', ExportFormat.html, _exportStandings, Colors.orange),
+                          _buildExportButton('TXT', ExportFormat.txt, _exportStandings, Colors.grey),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.folder_zip, color: Colors.purple, size: 20),
+                          const SizedBox(width: 8),
+                          const Text('Complete Tournament', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text('Export everything: schedule, standings, teams, and resources'),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          _buildExportButton('JSON', ExportFormat.json, _exportComplete, Colors.blue),
+                          _buildExportButton('HTML', ExportFormat.html, _exportComplete, Colors.orange),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.blue, size: 16),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Files will be downloaded automatically to your browser\'s download folder.',
+                        style: TextStyle(fontSize: 12, color: Colors.blue),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExportButton(String label, ExportFormat format, Function(ExportFormat) onPressed, Color color) {
+    return ElevatedButton(
+      onPressed: () {
+        Navigator.of(context).pop(); // Close dialog first
+        onPressed(format);
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        minimumSize: const Size(60, 32),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 12)),
+    );
+  }
+
+  Future<void> _exportSchedule(ExportFormat format) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Text('Exporting schedule as ${format.name.toUpperCase()}...'),
+            ],
+          ),
+          backgroundColor: Colors.blue,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+
+      final games = _hasActiveFilters() ? _filteredAllGames : _allGames;
+      
+      await ExportService.exportSchedule(
+        tournamentName: widget.tournamentName,
+        games: games,
+        teamMap: _teamMap,
+        resourceMap: _resourceMap,
+        format: format,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Schedule exported successfully as ${format.name.toUpperCase()}'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export schedule: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportStandings(ExportFormat format) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Text('Exporting standings as ${format.name.toUpperCase()}...'),
+            ],
+          ),
+          backgroundColor: Colors.amber,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+
+      final standings = TournamentStandingsService.calculateStandings(
+        tournamentId: widget.tournamentId,
+        format: TournamentFormat.roundRobin,
+        games: _allGames,
+        teams: _hasActiveFilters() ? _filteredTeams : _teams,
+        phase: 'tournament',
+      );
+      
+      await ExportService.exportStandings(
+        tournamentName: widget.tournamentName,
+        standings: standings,
+        format: format,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Standings exported successfully as ${format.name.toUpperCase()}'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export standings: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportComplete(ExportFormat format) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Text('Exporting complete tournament as ${format.name.toUpperCase()}...'),
+            ],
+          ),
+          backgroundColor: Colors.purple,
+          duration: const Duration(seconds: 10),
+        ),
+      );
+
+      final standings = TournamentStandingsService.calculateStandings(
+        tournamentId: widget.tournamentId,
+        format: TournamentFormat.roundRobin,
+        games: _allGames,
+        teams: _teams,
+        phase: 'tournament',
+      );
+      
+      await ExportService.exportTournamentComplete(
+        tournamentName: widget.tournamentName,
+        games: _allGames,
+        teamMap: _teamMap,
+        resourceMap: _resourceMap,
+        standings: standings,
+        format: format,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Complete tournament exported successfully as ${format.name.toUpperCase()}'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export tournament: $e'),
+            backgroundColor: Colors.red,
           ),
         );
       }
