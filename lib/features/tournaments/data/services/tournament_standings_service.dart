@@ -1,8 +1,8 @@
 import 'dart:math';
-import '../../../../core/models/tournament_standings_model.dart';
-import '../../../../core/models/game_model.dart';
-import '../../../../core/models/team_model.dart';
-import '../models/tournament_model.dart';
+import 'package:teamapp3/core/models/tournament_standings_model.dart';
+import 'package:teamapp3/core/models/game_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_model.dart';
 
 class TournamentStandingsService {
   
@@ -50,6 +50,27 @@ class TournamentStandingsService {
           phase: phase,
           isFinal: isFinal,
         );
+      case TournamentFormat.tiered:
+        // For tiered tournaments, calculate standings based on current phase
+        if (phase == 'group_stage') {
+          return _calculateRoundRobinStandings(
+            tournamentId: tournamentId,
+            games: games,
+            teams: teams,
+            phase: phase,
+            isFinal: isFinal,
+          );
+        } else {
+          // For tier playoffs, use elimination standings
+          return _calculateEliminationStandings(
+            tournamentId: tournamentId,
+            games: games,
+            teams: teams,
+            isDouble: false,
+            phase: phase,
+            isFinal: isFinal,
+          );
+        }
       case TournamentFormat.custom:
         // For custom tournaments, use round robin logic as default
         return _calculateRoundRobinStandings(
@@ -70,7 +91,7 @@ class TournamentStandingsService {
     String? phase,
     bool isFinal = false,
   }) {
-    final Map<String, _TeamStats> teamStats = {};
+    final teamStats = <String, _TeamStats>{};
     
     // Initialize team stats
     for (final team in teams) {
@@ -84,7 +105,7 @@ class TournamentStandingsService {
     final completedGames = games.where((game) => 
         game.status == GameStatus.completed && 
         game.hasResults && 
-        game.hasTeams).toList();
+        game.hasTeams,).toList();
     
     for (final game in completedGames) {
       final team1Stats = teamStats[game.team1Id!];
@@ -148,7 +169,6 @@ class TournamentStandingsService {
         winPercentage: winPercentage,
                  points: stats.points.round(),
         status: 'active',
-        isEliminated: false,
       );
     }).toList();
     
@@ -170,7 +190,7 @@ class TournamentStandingsService {
     });
     
     // Set positions
-    for (int i = 0; i < standings.length; i++) {
+    for (var i = 0; i < standings.length; i++) {
       standings[i] = standings[i].copyWith(position: i + 1);
     }
     
@@ -193,8 +213,8 @@ class TournamentStandingsService {
     String? phase,
     bool isFinal = false,
   }) {
-    final Map<String, _TeamStats> teamStats = {};
-    final Map<String, String> eliminationRounds = {};
+    final teamStats = <String, _TeamStats>{};
+    final eliminationRounds = <String, String>{};
     
     // Initialize team stats
     for (final team in teams) {
@@ -208,7 +228,7 @@ class TournamentStandingsService {
     final completedGames = games.where((game) => 
         game.status == GameStatus.completed && 
         game.hasResults && 
-        game.hasTeams).toList();
+        game.hasTeams,).toList();
     
     // Sort games by round to process in order
     completedGames.sort((a, b) => (a.round ?? 0).compareTo(b.round ?? 0));
@@ -237,13 +257,13 @@ class TournamentStandingsService {
       if (team1Score > team2Score) {
         team1Stats.wins++;
         team2Stats.losses++;
-        eliminatedTeamId = game.team2Id!;
-        winnerTeamId = game.team1Id!;
+        eliminatedTeamId = game.team2Id;
+        winnerTeamId = game.team1Id;
       } else if (team2Score > team1Score) {
         team2Stats.wins++;
         team1Stats.losses++;
-        eliminatedTeamId = game.team1Id!;
-        winnerTeamId = game.team2Id!;
+        eliminatedTeamId = game.team1Id;
+        winnerTeamId = game.team2Id;
       }
       
       // In elimination tournaments, track elimination rounds
@@ -264,7 +284,7 @@ class TournamentStandingsService {
       final eliminatedIn = eliminationRounds[stats.teamId];
       
       // Determine status based on elimination and performance
-      String status = 'active';
+      var status = 'active';
       if (isEliminated) {
         status = _getEliminationStatus(eliminatedIn);
       } else if (isFinal && stats.wins > 0) {
@@ -318,7 +338,7 @@ class TournamentStandingsService {
     });
     
     // Set positions
-    for (int i = 0; i < standings.length; i++) {
+    for (var i = 0; i < standings.length; i++) {
       standings[i] = standings[i].copyWith(position: i + 1);
     }
     
@@ -340,8 +360,8 @@ class TournamentStandingsService {
     String? phase,
     bool isFinal = false,
   }) {
-    final Map<String, _TeamStats> teamStats = {};
-    final Map<String, List<String>> opponentHistory = {};
+    final teamStats = <String, _TeamStats>{};
+    final opponentHistory = <String, List<String>>{};
     
     // Initialize team stats
     for (final team in teams) {
@@ -356,7 +376,7 @@ class TournamentStandingsService {
     final completedGames = games.where((game) => 
         game.status == GameStatus.completed && 
         game.hasResults && 
-        game.hasTeams).toList();
+        game.hasTeams,).toList();
     
     for (final game in completedGames) {
       final team1Stats = teamStats[game.team1Id!];
@@ -404,7 +424,7 @@ class TournamentStandingsService {
           : 0.0;
       
       // Calculate Buchholz score (tie-breaker)
-      double buchholzScore = 0.0;
+      var buchholzScore = 0.0;
       for (final opponentId in opponentHistory[stats.teamId] ?? []) {
         final opponentStats = teamStats[opponentId];
         if (opponentStats != null) {
@@ -427,7 +447,6 @@ class TournamentStandingsService {
         points: (stats.points * 2).round(), // Convert to integer (multiply by 2 to handle 0.5 points)
         status: 'active',
         tieBreakValue: buchholzScore,
-        isEliminated: false,
       );
     }).toList();
     
@@ -451,7 +470,7 @@ class TournamentStandingsService {
     });
     
     // Set positions
-    for (int i = 0; i < standings.length; i++) {
+    for (var i = 0; i < standings.length; i++) {
       standings[i] = standings[i].copyWith(position: i + 1);
     }
     
@@ -485,7 +504,7 @@ class TournamentStandingsService {
     if (roundLower.contains('quarter')) return 80;
     
     // Extract round number if present
-    final RegExp regExp = RegExp(r'round (\d+)');
+    final regExp = RegExp(r'round (\d+)');
     final match = regExp.firstMatch(roundLower);
     if (match != null) {
       return int.tryParse(match.group(1)!) ?? 0;
@@ -496,7 +515,12 @@ class TournamentStandingsService {
 }
 
 // Helper class for accumulating team statistics
-class _TeamStats {
+class _TeamStats { // Tournament points (can be fractional for Swiss)
+  
+  _TeamStats({
+    required this.teamId,
+    required this.teamName,
+  });
   final String teamId;
   final String teamName;
   int wins = 0;
@@ -505,10 +529,5 @@ class _TeamStats {
   int gamesPlayed = 0;
   int pointsFor = 0;
   int pointsAgainst = 0;
-  double points = 0.0; // Tournament points (can be fractional for Swiss)
-  
-  _TeamStats({
-    required this.teamId,
-    required this.teamName,
-  });
+  double points = 0;
 } 

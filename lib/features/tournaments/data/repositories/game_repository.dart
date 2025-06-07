@@ -1,11 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/models/game_model.dart';
+import 'package:teamapp3/core/models/game_model.dart';
 
 class GameRepository {
-  final SupabaseClient _supabaseClient;
 
   GameRepository({SupabaseClient? supabaseClient})
       : _supabaseClient = supabaseClient ?? Supabase.instance.client;
+  final SupabaseClient _supabaseClient;
 
   /// Create a new game
   Future<GameModel> createGame({
@@ -52,7 +52,7 @@ class GameRepository {
         .select()
         .single();
 
-    return GameModel.fromJson(data as Map<String, dynamic>);
+    return GameModel.fromJson(data);
   }
 
   /// Get all games for a tournament
@@ -66,7 +66,7 @@ class GameRepository {
         .order('scheduled_date', ascending: true)
         .order('scheduled_time', ascending: true);
 
-    return data.map((json) => GameModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => GameModel.fromJson(json)).toList();
   }
 
   /// Get games for a specific category
@@ -79,7 +79,7 @@ class GameRepository {
         .order('game_number', ascending: true)
         .order('scheduled_date', ascending: true);
 
-    return data.map((json) => GameModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => GameModel.fromJson(json)).toList();
   }
 
   /// Get games for a specific team
@@ -91,7 +91,7 @@ class GameRepository {
         .order('scheduled_date', ascending: true)
         .order('scheduled_time', ascending: true);
 
-    return data.map((json) => GameModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => GameModel.fromJson(json)).toList();
   }
 
   /// Get games scheduled for a specific resource
@@ -103,7 +103,7 @@ class GameRepository {
         .order('scheduled_date', ascending: true)
         .order('scheduled_time', ascending: true);
 
-    return data.map((json) => GameModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => GameModel.fromJson(json)).toList();
   }
 
   /// Get games for a specific date range
@@ -121,7 +121,7 @@ class GameRepository {
         .order('scheduled_date', ascending: true)
         .order('scheduled_time', ascending: true);
 
-    return data.map((json) => GameModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => GameModel.fromJson(json)).toList();
   }
 
   /// Get a single game by ID
@@ -133,7 +133,7 @@ class GameRepository {
         .maybeSingle();
 
     if (data == null) return null;
-    return GameModel.fromJson(data as Map<String, dynamic>);
+    return GameModel.fromJson(data);
   }
 
   /// Update game details
@@ -180,22 +180,16 @@ class GameRepository {
       switch (status) {
         case GameStatus.scheduled:
           statusValue = 'scheduled';
-          break;
         case GameStatus.inProgress:
           statusValue = 'in_progress';
-          break;
         case GameStatus.completed:
           statusValue = 'completed';
-          break;
         case GameStatus.cancelled:
           statusValue = 'cancelled';
-          break;
         case GameStatus.postponed:
           statusValue = 'postponed';
-          break;
         case GameStatus.forfeit:
           statusValue = 'forfeit';
-          break;
       }
       updateData['status'] = statusValue;
     }
@@ -211,7 +205,7 @@ class GameRepository {
         .select()
         .single();
 
-    return GameModel.fromJson(data as Map<String, dynamic>);
+    return GameModel.fromJson(data);
   }
 
   /// Start a game
@@ -228,7 +222,7 @@ class GameRepository {
         .select()
         .single();
 
-    return GameModel.fromJson(data as Map<String, dynamic>);
+    return GameModel.fromJson(data);
   }
 
   /// Complete a game with results
@@ -258,7 +252,7 @@ class GameRepository {
         .select()
         .single();
 
-    return GameModel.fromJson(data as Map<String, dynamic>);
+    return GameModel.fromJson(data);
   }
 
   /// Cancel or postpone a game
@@ -274,7 +268,7 @@ class GameRepository {
         .select()
         .single();
 
-    return GameModel.fromJson(data as Map<String, dynamic>);
+    return GameModel.fromJson(data);
   }
 
   /// Delete a game
@@ -300,7 +294,7 @@ class GameRepository {
         .select('status')
         .eq('tournament_id', tournamentId);
 
-    final Map<GameStatus, int> statusCounts = {};
+    final statusCounts = <GameStatus, int>{};
     for (final item in data) {
       final status = GameStatus.values.firstWhere(
         (s) => s.name == item['status'],
@@ -341,6 +335,6 @@ class GameRepository {
     }
 
     final data = await query;
-    return data.map((json) => GameModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => GameModel.fromJson(json)).toList();
   }
 } 

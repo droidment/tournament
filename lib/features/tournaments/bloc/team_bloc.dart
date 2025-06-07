@@ -1,10 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'team_event.dart';
-import 'team_state.dart';
-import '../data/repositories/team_repository.dart';
+import 'package:teamapp3/features/tournaments/bloc/team_event.dart';
+import 'package:teamapp3/features/tournaments/bloc/team_state.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/team_repository.dart';
 
 class TeamBloc extends Bloc<TeamEvent, TeamState> {
-  final TeamRepository _teamRepository;
 
   TeamBloc({TeamRepository? teamRepository})
       : _teamRepository = teamRepository ?? TeamRepository(),
@@ -16,6 +15,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
     on<TeamDeleteRequested>(_onTeamDeleteRequested);
     on<UserTeamsLoadRequested>(_onUserTeamsLoadRequested);
   }
+  final TeamRepository _teamRepository;
 
   Future<void> _onTeamCreateRequested(
     TeamCreateRequested event,
@@ -39,7 +39,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
       final teams = await _teamRepository.getTournamentTeams(event.tournamentId);
       emit(state.toSuccess(teams: teams, selectedTeam: team));
     } catch (e) {
-      emit(state.toError('Failed to create team: ${e.toString()}'));
+      emit(state.toError('Failed to create team: ${e}'));
     }
   }
 
@@ -53,7 +53,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
       final teams = await _teamRepository.getTournamentTeams(event.tournamentId);
       emit(state.toSuccess(teams: teams));
     } catch (e) {
-      emit(state.toError('Failed to load teams: ${e.toString()}'));
+      emit(state.toError('Failed to load teams: ${e}'));
     }
   }
 
@@ -67,7 +67,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
       final teams = await _teamRepository.getCategoryTeams(event.categoryId);
       emit(state.toSuccess(teams: teams));
     } catch (e) {
-      emit(state.toError('Failed to load category teams: ${e.toString()}'));
+      emit(state.toError('Failed to load category teams: ${e}'));
     }
   }
 
@@ -97,7 +97,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
 
       emit(state.toSuccess(teams: updatedTeams, selectedTeam: updatedTeam));
     } catch (e) {
-      emit(state.toError('Failed to update team: ${e.toString()}'));
+      emit(state.toError('Failed to update team: ${e}'));
     }
   }
 
@@ -117,7 +117,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
 
       emit(state.toSuccess(teams: updatedTeams));
     } catch (e) {
-      emit(state.toError('Failed to delete team: ${e.toString()}'));
+      emit(state.toError('Failed to delete team: ${e}'));
     }
   }
 
@@ -131,7 +131,7 @@ class TeamBloc extends Bloc<TeamEvent, TeamState> {
       final teams = await _teamRepository.getUserTeams(event.userId);
       emit(state.toSuccess(teams: teams));
     } catch (e) {
-      emit(state.toError('Failed to load user teams: ${e.toString()}'));
+      emit(state.toError('Failed to load user teams: ${e}'));
     }
   }
 } 

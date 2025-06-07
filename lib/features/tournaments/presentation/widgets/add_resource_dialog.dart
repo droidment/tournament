@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AddResourceDialog extends StatefulWidget {
-  final String tournamentId;
-  final Function(Map<String, dynamic>) onResourceAdded;
 
   const AddResourceDialog({
     super.key,
     required this.tournamentId,
     required this.onResourceAdded,
   });
+  final String tournamentId;
+  final Function(Map<String, dynamic>) onResourceAdded;
 
   @override
   State<AddResourceDialog> createState() => _AddResourceDialogState();
@@ -157,7 +157,7 @@ class _AddResourceDialogState extends State<AddResourceDialog> {
     if (_formKey.currentState!.validate()) {
       final resourceData = <String, dynamic>{
         'name': _nameController.text.trim(),
-        'type': _selectedType!,
+        'type': _selectedType,
         'description': _descriptionController.text.trim().isEmpty 
             ? null 
             : _descriptionController.text.trim(),

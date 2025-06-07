@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../data/models/category_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/category_model.dart';
 
 enum CategoryBlocStatus {
   initial,
@@ -12,10 +12,6 @@ enum CategoryBlocStatus {
 }
 
 class CategoryState extends Equatable {
-  final CategoryBlocStatus status;
-  final List<CategoryModel> categories;
-  final CategoryModel? selectedCategory;
-  final String? errorMessage;
 
   const CategoryState({
     this.status = CategoryBlocStatus.initial,
@@ -23,6 +19,10 @@ class CategoryState extends Equatable {
     this.selectedCategory,
     this.errorMessage,
   });
+  final CategoryBlocStatus status;
+  final List<CategoryModel> categories;
+  final CategoryModel? selectedCategory;
+  final String? errorMessage;
 
   CategoryState copyWith({
     CategoryBlocStatus? status,
@@ -41,28 +41,24 @@ class CategoryState extends Equatable {
   CategoryState toLoading() {
     return copyWith(
       status: CategoryBlocStatus.loading,
-      errorMessage: null,
     );
   }
 
   CategoryState toCreating() {
     return copyWith(
       status: CategoryBlocStatus.creating,
-      errorMessage: null,
     );
   }
 
   CategoryState toUpdating() {
     return copyWith(
       status: CategoryBlocStatus.updating,
-      errorMessage: null,
     );
   }
 
   CategoryState toDeleting() {
     return copyWith(
       status: CategoryBlocStatus.deleting,
-      errorMessage: null,
     );
   }
 
@@ -74,7 +70,6 @@ class CategoryState extends Equatable {
       status: CategoryBlocStatus.success,
       categories: categories ?? this.categories,
       selectedCategory: selectedCategory,
-      errorMessage: null,
     );
   }
 

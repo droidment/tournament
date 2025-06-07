@@ -66,11 +66,9 @@ class AuthState extends Equatable {
 // Helper classes for type safety
 class AuthenticatedState extends AuthState {
   const AuthenticatedState({
-    required supabase.User user,
-    UserModel? userProfile,
+    required supabase.User super.user,
+    super.userProfile,
   }) : super._(
           status: AuthStatus.authenticated,
-          user: user,
-          userProfile: userProfile,
         );
 } 

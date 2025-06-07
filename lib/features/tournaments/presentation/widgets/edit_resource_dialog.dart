@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
 
 class EditResourceDialog extends StatefulWidget {
-  final TournamentResourceModel resource;
-  final Function(Map<String, dynamic>) onResourceUpdated;
 
   const EditResourceDialog({
     super.key,
     required this.resource,
     required this.onResourceUpdated,
   });
+  final TournamentResourceModel resource;
+  final Function(Map<String, dynamic>) onResourceUpdated;
 
   @override
   State<EditResourceDialog> createState() => _EditResourceDialogState();

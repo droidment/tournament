@@ -5,6 +5,9 @@ part 'tournament_resource_model.g.dart';
 
 @JsonSerializable()
 class TournamentResourceModel extends Equatable {
+
+  factory TournamentResourceModel.fromJson(Map<String, dynamic> json) =>
+      _$TournamentResourceModelFromJson(json);
   const TournamentResourceModel({
     required this.id,
     required this.tournamentId,
@@ -35,9 +38,6 @@ class TournamentResourceModel extends Equatable {
   final DateTime? createdAt;
   @JsonKey(name: 'updated_at')
   final DateTime? updatedAt;
-
-  factory TournamentResourceModel.fromJson(Map<String, dynamic> json) =>
-      _$TournamentResourceModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$TournamentResourceModelToJson(this);
 

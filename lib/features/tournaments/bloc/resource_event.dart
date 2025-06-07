@@ -8,12 +8,6 @@ abstract class ResourceEvent extends Equatable {
 }
 
 class ResourceCreateRequested extends ResourceEvent {
-  final String tournamentId;
-  final String name;
-  final String type;
-  final String? description;
-  final int? capacity;
-  final String? location;
 
   const ResourceCreateRequested({
     required this.tournamentId,
@@ -23,6 +17,12 @@ class ResourceCreateRequested extends ResourceEvent {
     this.capacity,
     this.location,
   });
+  final String tournamentId;
+  final String name;
+  final String type;
+  final String? description;
+  final int? capacity;
+  final String? location;
 
   @override
   List<Object?> get props => [
@@ -36,32 +36,25 @@ class ResourceCreateRequested extends ResourceEvent {
 }
 
 class TournamentResourcesLoadRequested extends ResourceEvent {
-  final String tournamentId;
 
   const TournamentResourcesLoadRequested(this.tournamentId);
+  final String tournamentId;
 
   @override
   List<Object?> get props => [tournamentId];
 }
 
 class ResourcesByTypeLoadRequested extends ResourceEvent {
-  final String tournamentId;
-  final String type;
 
   const ResourcesByTypeLoadRequested(this.tournamentId, this.type);
+  final String tournamentId;
+  final String type;
 
   @override
   List<Object?> get props => [tournamentId, type];
 }
 
 class ResourceUpdateRequested extends ResourceEvent {
-  final String resourceId;
-  final String? name;
-  final String? type;
-  final String? description;
-  final int? capacity;
-  final String? location;
-  final bool? isActive;
 
   const ResourceUpdateRequested({
     required this.resourceId,
@@ -72,6 +65,13 @@ class ResourceUpdateRequested extends ResourceEvent {
     this.location,
     this.isActive,
   });
+  final String resourceId;
+  final String? name;
+  final String? type;
+  final String? description;
+  final int? capacity;
+  final String? location;
+  final bool? isActive;
 
   @override
   List<Object?> get props => [
@@ -86,18 +86,18 @@ class ResourceUpdateRequested extends ResourceEvent {
 }
 
 class ResourceDeleteRequested extends ResourceEvent {
-  final String resourceId;
 
   const ResourceDeleteRequested(this.resourceId);
+  final String resourceId;
 
   @override
   List<Object?> get props => [resourceId];
 }
 
 class ResourceTypesLoadRequested extends ResourceEvent {
-  final String tournamentId;
 
   const ResourceTypesLoadRequested(this.tournamentId);
+  final String tournamentId;
 
   @override
   List<Object?> get props => [tournamentId];

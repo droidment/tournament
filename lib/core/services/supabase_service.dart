@@ -2,10 +2,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:teamapp3/core/constants/supabase_constants.dart';
 
 class SupabaseService {
-  static SupabaseService? _instance;
-  static SupabaseService get instance => _instance ??= SupabaseService._();
 
   SupabaseService._();
+  static SupabaseService? _instance;
+  static SupabaseService get instance => _instance ??= SupabaseService._();
 
   SupabaseClient get client => Supabase.instance.client;
 

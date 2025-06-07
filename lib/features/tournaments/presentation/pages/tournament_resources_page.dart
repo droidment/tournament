@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../bloc/resource_bloc.dart';
-import '../../bloc/resource_event.dart';
-import '../../bloc/resource_state.dart';
-import '../../../../core/models/tournament_resource_model.dart';
-import '../widgets/resource_list_item.dart';
-import '../widgets/add_resource_dialog.dart';
-import '../widgets/edit_resource_dialog.dart';
-import '../pages/resource_availability_page.dart';
+import 'package:teamapp3/features/tournaments/bloc/resource_bloc.dart';
+import 'package:teamapp3/features/tournaments/bloc/resource_event.dart';
+import 'package:teamapp3/features/tournaments/bloc/resource_state.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/resource_list_item.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/add_resource_dialog.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/edit_resource_dialog.dart';
+import 'package:teamapp3/features/tournaments/presentation/pages/resource_availability_page.dart';
 
 class TournamentResourcesPage extends StatefulWidget {
-  final String tournamentId;
-  final String tournamentName;
 
   const TournamentResourcesPage({
     super.key,
     required this.tournamentId,
     required this.tournamentName,
   });
+  final String tournamentId;
+  final String tournamentName;
 
   @override
   State<TournamentResourcesPage> createState() => _TournamentResourcesPageState();
@@ -155,13 +155,12 @@ class _TournamentResourcesPageState extends State<TournamentResourcesPage> {
                 ),
                 items: [
                   const DropdownMenuItem<String?>(
-                    value: null,
                     child: Text('All Types'),
                   ),
                   ...state.resourceTypes.map((type) => DropdownMenuItem(
                         value: type,
                         child: Text(_formatResourceType(type)),
-                      )),
+                      ),),
                 ],
                 onChanged: (value) {
                   setState(() {
@@ -359,7 +358,7 @@ class _TournamentResourcesPageState extends State<TournamentResourcesPage> {
 
   String _formatResourceType(String type) {
     return type.split('_').map((word) => 
-      word[0].toUpperCase() + word.substring(1).toLowerCase()
+      word[0].toUpperCase() + word.substring(1).toLowerCase(),
     ).join(' ');
   }
 

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/resource_availability_model.dart';
-import '../../data/repositories/resource_availability_repository.dart';
+import 'package:teamapp3/core/models/resource_availability_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/resource_availability_repository.dart';
 
 class EditAvailabilityDialog extends StatefulWidget {
-  final ResourceAvailabilityModel availability;
-  final Function(ResourceAvailabilityModel) onAvailabilityUpdated;
 
   const EditAvailabilityDialog({
     super.key,
     required this.availability,
     required this.onAvailabilityUpdated,
   });
+  final ResourceAvailabilityModel availability;
+  final Function(ResourceAvailabilityModel) onAvailabilityUpdated;
 
   @override
   State<EditAvailabilityDialog> createState() => _EditAvailabilityDialogState();
@@ -56,7 +56,7 @@ class _EditAvailabilityDialogState extends State<EditAvailabilityDialog> {
       title: Text(
         widget.availability.isRecurring 
             ? 'Edit Recurring Availability' 
-            : 'Edit Specific Date Availability'
+            : 'Edit Specific Date Availability',
       ),
       content: SizedBox(
         width: MediaQuery.of(context).size.width * 0.8,

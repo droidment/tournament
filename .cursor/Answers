@@ -1,0 +1,37 @@
+ Tournament Model Integration:
+Should this be added as a new TournamentFormat enum value (e.g., TournamentFormat.tiered)?
+
+Yes
+
+Or should it use the existing TournamentFormat.custom with additional configuration?
+
+NO
+
+2. Scoring System:
+You mention "2 points for win, 1 for tie, 0 for loss" - should this be configurable?
+Yes, this should be configurable.
+
+How do we handle sports that don't typically have ties?
+Equal points?
+
+3. UI/UX Flow:
+Should there be a separate configuration dialog for setting up groups, tier distributions, etc.?
+We need to enforce seeding for all teams and the seeds will be spread across the groups, 1 to the 1st group and so on and in the 4th group, 5th seed will be in it and i6th team to the 3rd group and so on.
+How should we display the transition between phases to users?
+We will probably need to have a PRO view, Internediate view and Novice View after the round robins are completed.
+4. Database Schema:
+Do we need new tables for groups, tier assignments, and multi-phase results?
+Yes, New table are fine.
+
+Should we extend existing models or create new ones?
+5. Team Elimination:
+When excess teams are eliminated (e.g., 3 teams from 23), should this be:
+Automatic (lowest seed/random)? LOWEST ranked after the round robin
+
+Manual selection by tournament organizer? NO
+Based on some criteria? Lowest
+6. Tiebreaker Implementation:
+Should we implement the full tiebreaker hierarchy (points → head-to-head → point differential)?
+Yes, please
+What sport-specific tiebreakers should we support?
+Volleyball: and Pickleball. But if you want to do only one sport, then Volleyball, it is.

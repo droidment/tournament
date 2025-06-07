@@ -1,10 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'category_event.dart';
-import 'category_state.dart';
-import '../data/repositories/category_repository.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_event.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_state.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/category_repository.dart';
 
 class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
-  final CategoryRepository _categoryRepository;
 
   CategoryBloc({CategoryRepository? categoryRepository})
       : _categoryRepository = categoryRepository ?? CategoryRepository(),
@@ -16,6 +15,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     on<CategoriesReorderRequested>(_onCategoriesReorderRequested);
     on<DefaultCategoriesCreateRequested>(_onDefaultCategoriesCreateRequested);
   }
+  final CategoryRepository _categoryRepository;
 
   Future<void> _onCategoryCreateRequested(
     CategoryCreateRequested event,
@@ -37,7 +37,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
       final categories = await _categoryRepository.getTournamentCategories(event.tournamentId);
       emit(state.toSuccess(categories: categories, selectedCategory: category));
     } catch (e) {
-      emit(state.toError('Failed to create category: ${e.toString()}'));
+      emit(state.toError('Failed to create category: ${e}'));
     }
   }
 
@@ -51,7 +51,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
       final categories = await _categoryRepository.getTournamentCategories(event.tournamentId);
       emit(state.toSuccess(categories: categories));
     } catch (e) {
-      emit(state.toError('Failed to load categories: ${e.toString()}'));
+      emit(state.toError('Failed to load categories: ${e}'));
     }
   }
 
@@ -79,7 +79,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
 
       emit(state.toSuccess(categories: updatedCategories, selectedCategory: updatedCategory));
     } catch (e) {
-      emit(state.toError('Failed to update category: ${e.toString()}'));
+      emit(state.toError('Failed to update category: ${e}'));
     }
   }
 
@@ -99,7 +99,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
 
       emit(state.toSuccess(categories: updatedCategories));
     } catch (e) {
-      emit(state.toError('Failed to delete category: ${e.toString()}'));
+      emit(state.toError('Failed to delete category: ${e}'));
     }
   }
 
@@ -119,7 +119,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
         emit(state.toSuccess(categories: categories));
       }
     } catch (e) {
-      emit(state.toError('Failed to reorder categories: ${e.toString()}'));
+      emit(state.toError('Failed to reorder categories: ${e}'));
     }
   }
 
@@ -133,7 +133,7 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
       final categories = await _categoryRepository.createDefaultCategories(event.tournamentId);
       emit(state.toSuccess(categories: categories));
     } catch (e) {
-      emit(state.toError('Failed to create default categories: ${e.toString()}'));
+      emit(state.toError('Failed to create default categories: ${e}'));
     }
   }
 } 

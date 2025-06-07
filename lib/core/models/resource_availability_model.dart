@@ -4,6 +4,20 @@ part 'resource_availability_model.g.dart';
 
 @JsonSerializable()
 class ResourceAvailabilityModel {
+
+  const ResourceAvailabilityModel({
+    required this.id,
+    required this.resourceId,
+    this.dayOfWeek,
+    this.specificDate,
+    required this.startTime,
+    required this.endTime,
+    this.isAvailable = true,
+    required this.createdAt,
+  });
+
+  factory ResourceAvailabilityModel.fromJson(Map<String, dynamic> json) =>
+      _$ResourceAvailabilityModelFromJson(json);
   final String id;
   @JsonKey(name: 'resource_id')
   final String resourceId;
@@ -19,20 +33,6 @@ class ResourceAvailabilityModel {
   final bool isAvailable;
   @JsonKey(name: 'created_at')
   final DateTime createdAt;
-
-  const ResourceAvailabilityModel({
-    required this.id,
-    required this.resourceId,
-    this.dayOfWeek,
-    this.specificDate,
-    required this.startTime,
-    required this.endTime,
-    this.isAvailable = true,
-    required this.createdAt,
-  });
-
-  factory ResourceAvailabilityModel.fromJson(Map<String, dynamic> json) =>
-      _$ResourceAvailabilityModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$ResourceAvailabilityModelToJson(this);
 

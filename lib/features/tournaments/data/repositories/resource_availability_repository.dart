@@ -1,11 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/models/resource_availability_model.dart';
+import 'package:teamapp3/core/models/resource_availability_model.dart';
 
 class ResourceAvailabilityRepository {
-  final SupabaseClient _supabaseClient;
 
   ResourceAvailabilityRepository({SupabaseClient? supabaseClient})
       : _supabaseClient = supabaseClient ?? Supabase.instance.client;
+  final SupabaseClient _supabaseClient;
 
   /// Create recurring availability (weekly schedule)
   Future<ResourceAvailabilityModel> createRecurringAvailability({
@@ -29,7 +29,7 @@ class ResourceAvailabilityRepository {
         .select()
         .single();
 
-    return ResourceAvailabilityModel.fromJson(data as Map<String, dynamic>);
+    return ResourceAvailabilityModel.fromJson(data);
   }
 
   /// Create specific date availability
@@ -54,7 +54,7 @@ class ResourceAvailabilityRepository {
         .select()
         .single();
 
-    return ResourceAvailabilityModel.fromJson(data as Map<String, dynamic>);
+    return ResourceAvailabilityModel.fromJson(data);
   }
 
   /// Get all availability for a specific resource
@@ -67,7 +67,7 @@ class ResourceAvailabilityRepository {
         .order('specific_date', ascending: true)
         .order('start_time', ascending: true);
 
-    return data.map((json) => ResourceAvailabilityModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => ResourceAvailabilityModel.fromJson(json)).toList();
   }
 
   /// Get recurring availability (weekly schedule) for a resource
@@ -80,7 +80,7 @@ class ResourceAvailabilityRepository {
         .order('day_of_week', ascending: true)
         .order('start_time', ascending: true);
 
-    return data.map((json) => ResourceAvailabilityModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => ResourceAvailabilityModel.fromJson(json)).toList();
   }
 
   /// Get specific date availability for a resource
@@ -93,7 +93,7 @@ class ResourceAvailabilityRepository {
         .order('specific_date', ascending: true)
         .order('start_time', ascending: true);
 
-    return data.map((json) => ResourceAvailabilityModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => ResourceAvailabilityModel.fromJson(json)).toList();
   }
 
   /// Get availability for a specific date range
@@ -115,7 +115,7 @@ class ResourceAvailabilityRepository {
         .order('day_of_week', ascending: true)
         .order('start_time', ascending: true);
 
-    return data.map((json) => ResourceAvailabilityModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => ResourceAvailabilityModel.fromJson(json)).toList();
   }
 
   /// Update availability
@@ -138,7 +138,7 @@ class ResourceAvailabilityRepository {
         .select()
         .single();
 
-    return ResourceAvailabilityModel.fromJson(data as Map<String, dynamic>);
+    return ResourceAvailabilityModel.fromJson(data);
   }
 
   /// Delete availability
@@ -213,9 +213,9 @@ class ResourceAvailabilityRepository {
         .select('day_of_week, specific_date, is_available')
         .eq('resource_id', resourceId);
 
-    int recurringSlots = 0;
-    int specificDateSlots = 0;
-    int unavailableSlots = 0;
+    var recurringSlots = 0;
+    var specificDateSlots = 0;
+    var unavailableSlots = 0;
 
     for (final item in data) {
       if (item['day_of_week'] != null) {

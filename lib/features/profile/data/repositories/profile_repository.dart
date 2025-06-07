@@ -4,10 +4,10 @@ import 'package:teamapp3/core/services/supabase_service.dart';
 import 'package:teamapp3/features/profile/data/models/user_profile_model.dart';
 
 class ProfileRepository {
-  final SupabaseService _supabaseService;
 
   ProfileRepository({SupabaseService? supabaseService})
       : _supabaseService = supabaseService ?? SupabaseService.instance;
+  final SupabaseService _supabaseService;
 
   Future<UserProfileModel> getUserProfile(String userId) async {
     try {
@@ -193,7 +193,7 @@ class ProfileRepository {
           orElse: () => UserRole.player,
         ),
         joinedAt: DateTime.parse(data['joined_at'] as String),
-      )).toList();
+      ),).toList();
     } catch (e) {
       // If tables don't exist yet, return empty list
       return [];
@@ -263,14 +263,14 @@ class ProfileRepository {
         ...Map<String, dynamic>.from(data['tournaments'] as Map),
         'my_role': data['role'],
         'joined_at': data['joined_at'],
-      }).toList();
+      },).toList();
 
       // Mark created tournaments with organizer role
       final markedCreatedTournaments = createdTournaments.map((tournament) => {
         ...Map<String, dynamic>.from(tournament),
         'my_role': 'organizer',
         'joined_at': tournament['created_at'],
-      }).toList();
+      },).toList();
 
       // Combine and deduplicate
       final allTournaments = <String, Map<String, dynamic>>{};
@@ -285,7 +285,7 @@ class ProfileRepository {
 
       return allTournaments.values.toList()
         ..sort((a, b) => DateTime.parse(b['start_date'] as String)
-            .compareTo(DateTime.parse(a['start_date'] as String)));
+            .compareTo(DateTime.parse(a['start_date'] as String)),);
     } catch (e) {
       // If tables don't exist yet, return empty list
       return [];

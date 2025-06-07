@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
 
 class ResourceListItem extends StatelessWidget {
-  final TournamentResourceModel resource;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-  final VoidCallback onManageAvailability;
 
   const ResourceListItem({
     super.key,
@@ -14,6 +10,10 @@ class ResourceListItem extends StatelessWidget {
     required this.onDelete,
     required this.onManageAvailability,
   });
+  final TournamentResourceModel resource;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onManageAvailability;
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +168,7 @@ class ResourceListItem extends StatelessWidget {
 
   String _formatResourceType(String type) {
     return type.split('_').map((word) => 
-      word[0].toUpperCase() + word.substring(1).toLowerCase()
+      word[0].toUpperCase() + word.substring(1).toLowerCase(),
     ).join(' ');
   }
 } 

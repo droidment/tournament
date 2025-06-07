@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../bloc/category_bloc.dart';
-import '../../bloc/category_state.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_bloc.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_state.dart';
 
 class AddTeamDialog extends StatefulWidget {
-  final String tournamentId;
-  final Function(Map<String, dynamic>) onTeamAdded;
 
   const AddTeamDialog({
     super.key,
     required this.tournamentId,
     required this.onTeamAdded,
   });
+  final String tournamentId;
+  final Function(Map<String, dynamic>) onTeamAdded;
 
   @override
   State<AddTeamDialog> createState() => _AddTeamDialogState();
@@ -199,13 +199,12 @@ class _AddTeamDialogState extends State<AddTeamDialog> {
                     ),
                     items: [
                       const DropdownMenuItem<String>(
-                        value: null,
                         child: Text('No Category'),
                       ),
                       ...state.categories.map((category) => DropdownMenuItem(
                         value: category.id,
                         child: Text(category.name),
-                      )),
+                      ),),
                     ],
                     onChanged: (value) {
                       setState(() {

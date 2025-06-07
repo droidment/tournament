@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/resource_availability_model.dart';
-import '../../data/repositories/resource_availability_repository.dart';
+import 'package:teamapp3/core/models/resource_availability_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/resource_availability_repository.dart';
 
 class AddAvailabilityDialog extends StatefulWidget {
-  final String resourceId;
-  final bool isRecurring;
-  final Function(ResourceAvailabilityModel) onAvailabilityAdded;
 
   const AddAvailabilityDialog({
     super.key,
@@ -13,6 +10,9 @@ class AddAvailabilityDialog extends StatefulWidget {
     required this.isRecurring,
     required this.onAvailabilityAdded,
   });
+  final String resourceId;
+  final bool isRecurring;
+  final Function(ResourceAvailabilityModel) onAvailabilityAdded;
 
   @override
   State<AddAvailabilityDialog> createState() => _AddAvailabilityDialogState();
@@ -32,7 +32,7 @@ class _AddAvailabilityDialogState extends State<AddAvailabilityDialog> {
 
   final List<String> _dayNames = [
     'Sunday', 'Monday', 'Tuesday', 'Wednesday', 
-    'Thursday', 'Friday', 'Saturday'
+    'Thursday', 'Friday', 'Saturday',
   ];
 
   @override

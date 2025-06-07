@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../../core/models/team_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
 
 enum TeamBlocStatus {
   initial,
@@ -12,10 +12,6 @@ enum TeamBlocStatus {
 }
 
 class TeamState extends Equatable {
-  final TeamBlocStatus status;
-  final List<TeamModel> teams;
-  final TeamModel? selectedTeam;
-  final String? errorMessage;
 
   const TeamState({
     this.status = TeamBlocStatus.initial,
@@ -23,6 +19,10 @@ class TeamState extends Equatable {
     this.selectedTeam,
     this.errorMessage,
   });
+  final TeamBlocStatus status;
+  final List<TeamModel> teams;
+  final TeamModel? selectedTeam;
+  final String? errorMessage;
 
   TeamState copyWith({
     TeamBlocStatus? status,
@@ -41,28 +41,24 @@ class TeamState extends Equatable {
   TeamState toLoading() {
     return copyWith(
       status: TeamBlocStatus.loading,
-      errorMessage: null,
     );
   }
 
   TeamState toCreating() {
     return copyWith(
       status: TeamBlocStatus.creating,
-      errorMessage: null,
     );
   }
 
   TeamState toUpdating() {
     return copyWith(
       status: TeamBlocStatus.updating,
-      errorMessage: null,
     );
   }
 
   TeamState toDeleting() {
     return copyWith(
       status: TeamBlocStatus.deleting,
-      errorMessage: null,
     );
   }
 
@@ -74,7 +70,6 @@ class TeamState extends Equatable {
       status: TeamBlocStatus.success,
       teams: teams ?? this.teams,
       selectedTeam: selectedTeam,
-      errorMessage: null,
     );
   }
 

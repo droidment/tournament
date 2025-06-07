@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/tournament_standings_model.dart';
-import '../../../../core/models/team_model.dart';
-import '../widgets/tournament_standings_widget.dart';
-import '../../data/models/tournament_model.dart';
-import '../../data/repositories/team_repository.dart';
-import '../../data/repositories/tournament_repository.dart';
-import '../../data/services/tournament_standings_service.dart';
-import '../../data/services/live_score_service.dart';
+import 'package:teamapp3/core/models/tournament_standings_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/tournament_standings_widget.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/team_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/tournament_repository.dart';
+import 'package:teamapp3/features/tournaments/data/services/tournament_standings_service.dart';
+import 'package:teamapp3/features/tournaments/data/services/live_score_service.dart';
 
 class TournamentStandingsPage extends StatefulWidget {
-  final String tournamentId;
 
   const TournamentStandingsPage({
     super.key,
     required this.tournamentId,
   });
+  final String tournamentId;
 
   @override
   State<TournamentStandingsPage> createState() => _TournamentStandingsPageState();
@@ -62,7 +62,7 @@ class _TournamentStandingsPageState extends State<TournamentStandingsPage> {
       ]);
 
       final tournament = futures[0] as TournamentModel?;
-      final teams = futures[1] as List<TeamModel>;
+      final teams = futures[1]! as List<TeamModel>;
 
       if (tournament == null) {
         throw Exception('Tournament not found');
@@ -156,9 +156,7 @@ class _TournamentStandingsPageState extends State<TournamentStandingsPage> {
               tooltip: 'Refresh Standings',
             ),
           IconButton(
-            onPressed: () {
-              _showStandingsInfo();
-            },
+            onPressed: _showStandingsInfo,
             icon: const Icon(Icons.info_outline),
             tooltip: 'Standings Info',
           ),
@@ -420,7 +418,7 @@ class _TournamentStandingsPageState extends State<TournamentStandingsPage> {
                 const Text('In Swiss System tournaments:'),
                 const Text('• Teams play a fixed number of rounds'),
                 const Text('• Paired based on current standings'),
-                const Text('• Tie-breaker: Buchholz score (opponents\' points)'),
+                const Text("• Tie-breaker: Buchholz score (opponents' points)"),
               ],
               const SizedBox(height: 16),
               Text(
@@ -454,6 +452,8 @@ class _TournamentStandingsPageState extends State<TournamentStandingsPage> {
         return 'Double Elimination';
       case TournamentFormat.swiss:
         return 'Swiss System';
+      case TournamentFormat.tiered:
+        return 'Tiered Tournament';
       case TournamentFormat.custom:
         return 'Custom';
     }

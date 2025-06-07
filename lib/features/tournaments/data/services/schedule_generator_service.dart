@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/team_model.dart';
-import '../../../../core/models/tournament_resource_model.dart';
-import '../../../../core/models/resource_availability_model.dart';
-import '../../../../core/models/game_model.dart';
-import '../repositories/game_repository.dart';
-import '../repositories/resource_availability_repository.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/resource_availability_model.dart';
+import 'package:teamapp3/core/models/game_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/game_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/resource_availability_repository.dart';
 
 class ScheduleGeneratorService {
   final GameRepository _gameRepository = GameRepository();
@@ -42,7 +42,7 @@ class ScheduleGeneratorService {
     // Generate all possible matchups with optional ordering for better distribution
     final matchups = _generateRoundRobinMatchupsWithBalancing(teams);
     print('🔀 Generated ${matchups.length} matchups with balanced ordering');
-    for (int i = 0; i < matchups.length; i++) {
+    for (var i = 0; i < matchups.length; i++) {
       final matchup = matchups[i];
       print('   Game ${i + 1}: ${matchup.team1.name} vs ${matchup.team2.name}');
     }
@@ -71,9 +71,9 @@ class ScheduleGeneratorService {
       print('   Need: $requiredTimeSlots');
       print('   Have: ${timeSlots.length}');
       print('📋 Available time slots details:');
-      for (int i = 0; i < timeSlots.length; i++) {
+      for (var i = 0; i < timeSlots.length; i++) {
         final slot = timeSlots[i];
-        print('     ${i + 1}. ${slot.toString()}');
+        print('     ${i + 1}. ${slot}');
       }
       throw Exception(
         'Not enough time slots for all games. '
@@ -100,7 +100,7 @@ class ScheduleGeneratorService {
     // Create games in database
     print('💾 Creating games in database...');
     final createdGames = <GameModel>[];
-    for (int i = 0; i < games.length; i++) {
+    for (var i = 0; i < games.length; i++) {
       final game = games[i];
       print('   Creating game ${i + 1}/${games.length}: ${game.displayName}');
       try {
@@ -133,20 +133,20 @@ class ScheduleGeneratorService {
 
   /// Generate all possible team combinations for round robin
   List<TeamMatchup> _generateRoundRobinMatchupsWithBalancing(List<TeamModel> teams) {
-    final List<TeamMatchup> matchups = [];
+    final matchups = <TeamMatchup>[];
     
     print('🔄 Generating round-robin matchups for ${teams.length} teams');
     
     // Simple round robin: every team plays every other team exactly once
-    for (int i = 0; i < teams.length; i++) {
-      for (int j = i + 1; j < teams.length; j++) {
+    for (var i = 0; i < teams.length; i++) {
+      for (var j = i + 1; j < teams.length; j++) {
         final team1 = teams[i];
         final team2 = teams[j];
         
         matchups.add(TeamMatchup(
           team1: team1,
           team2: team2,
-        ));
+        ),);
         
         print('  - ${team1.name} vs ${team2.name}');
       }
@@ -164,7 +164,7 @@ class ScheduleGeneratorService {
     required int gameDurationMinutes,
     required int breakBetweenGames,
   }) async {
-    final List<TimeSlot> allSlots = [];
+    final allSlots = <TimeSlot>[];
     
     for (final resource in resources) {
       final resourceSlots = await _getResourceTimeSlots(
@@ -195,7 +195,7 @@ class ScheduleGeneratorService {
     required int gameDurationMinutes,
     required int breakBetweenGames,
   }) async {
-    final List<TimeSlot> slots = [];
+    final slots = <TimeSlot>[];
     
     print('🔍 Checking availability for resource: ${resource.name} (${resource.id})');
     
@@ -207,16 +207,15 @@ class ScheduleGeneratorService {
       print('⚠️ No availability defined for ${resource.name}! Creating default availability...');
       // Create default availability: Monday to Friday, 5 AM to 11 PM
       final defaultAvailabilities = <ResourceAvailabilityModel>[];
-      for (int day = 1; day <= 5; day++) { // Monday to Friday
+      for (var day = 1; day <= 5; day++) { // Monday to Friday
         defaultAvailabilities.add(ResourceAvailabilityModel(
           id: 'default_$day',
           resourceId: resource.id,
           dayOfWeek: day,
           startTime: '05:00',
           endTime: '23:00',
-          isAvailable: true,
           createdAt: DateTime.now(),
-        ));
+        ),);
       }
       
       // Filter availabilities for the date range
@@ -234,7 +233,7 @@ class ScheduleGeneratorService {
       final existingGames = await _gameRepository.getResourceGames(resource.id);
       
       // Generate time slots for each day
-      for (DateTime date = startDate; 
+      for (var date = startDate; 
            date.isBefore(endDate.add(const Duration(days: 1))); 
            date = date.add(const Duration(days: 1))) {
         
@@ -273,7 +272,7 @@ class ScheduleGeneratorService {
       final existingGames = await _gameRepository.getResourceGames(resource.id);
       
       // Generate time slots for each day
-      for (DateTime date = startDate; 
+      for (var date = startDate; 
            date.isBefore(endDate.add(const Duration(days: 1))); 
            date = date.add(const Duration(days: 1))) {
         
@@ -304,7 +303,7 @@ class ScheduleGeneratorService {
     required int gameDurationMinutes,
     required int breakBetweenGames,
   }) {
-    final List<TimeSlot> slots = [];
+    final slots = <TimeSlot>[];
     final dayOfWeek = date.weekday % 7; // Convert to 0-6 format
     
     print('  🔍 Processing ${_getDayName(date.weekday)} ${date.day}/${date.month}/${date.year} (dayOfWeek: $dayOfWeek)');
@@ -362,18 +361,18 @@ class ScheduleGeneratorService {
     required int gameDurationMinutes,
     required int breakBetweenGames,
   }) {
-    final List<TimeSlot> slots = [];
+    final slots = <TimeSlot>[];
     
     final startTime = _parseTime(availability.startTime);
     final endTime = _parseTime(availability.endTime);
     final totalSlotMinutes = gameDurationMinutes + breakBetweenGames;
     
-    DateTime currentSlotStart = DateTime(
+    var currentSlotStart = DateTime(
       date.year, 
       date.month, 
       date.day, 
       startTime.hour, 
-      startTime.minute
+      startTime.minute,
     );
     
     final windowEnd = DateTime(
@@ -381,7 +380,7 @@ class ScheduleGeneratorService {
       date.month, 
       date.day, 
       endTime.hour, 
-      endTime.minute
+      endTime.minute,
     );
     
     while (currentSlotStart.add(Duration(minutes: gameDurationMinutes)).isBefore(windowEnd) ||
@@ -390,7 +389,7 @@ class ScheduleGeneratorService {
       final slotEnd = currentSlotStart.add(Duration(minutes: gameDurationMinutes));
       
       // Check if this slot conflicts with existing games
-      bool hasConflict = false;
+      var hasConflict = false;
       for (final game in existingGames) {
         if (game.scheduledTime != null) {
           final gameStart = DateTime(
@@ -417,7 +416,7 @@ class ScheduleGeneratorService {
           date: date,
           startTime: _formatTime(TimeOfDay.fromDateTime(currentSlotStart)),
           endTime: _formatTime(TimeOfDay.fromDateTime(slotEnd)),
-        ));
+        ),);
       }
       
       currentSlotStart = currentSlotStart.add(Duration(minutes: totalSlotMinutes));
@@ -495,27 +494,27 @@ class ScheduleGeneratorService {
     int restInterval,
   ) {
     print('🔧 Starting optimal game scheduling with team conflict prevention and rest interval enforcement...');
-    final List<GameModel> scheduledGames = [];
+    final scheduledGames = <GameModel>[];
     
     // Track last game end time for each team (teamId -> DateTime)
-    final Map<String, DateTime> teamLastGameEndTime = {};
+    final teamLastGameEndTime = <String, DateTime>{};
     
     print('📋 Team rest interval tracking initialized');
 
-    for (int i = 0; i < matchups.length; i++) {
+    for (var i = 0; i < matchups.length; i++) {
       final matchup = matchups[i];
       
       print('   📋 Finding slot for Game ${i + 1}: ${matchup.team1.name} vs ${matchup.team2.name}');
       
       // Find the first available slot where neither team has a conflict
       TimeSlot? availableSlot;
-      int slotIndex = -1;
+      var slotIndex = -1;
       
-      for (int j = 0; j < timeSlots.length; j++) {
+      for (var j = 0; j < timeSlots.length; j++) {
         final slot = timeSlots[j];
         
         // Check if this slot creates a team conflict (same time slot)
-        bool hasTeamConflict = false;
+        var hasTeamConflict = false;
         
         for (final existingGame in scheduledGames) {
           // Check if the slot overlaps with any existing game
@@ -533,14 +532,14 @@ class ScheduleGeneratorService {
         }
         
         // Check if either team needs more rest time before this slot
-        bool hasRestIntervalViolation = false;
+        var hasRestIntervalViolation = false;
         if (!hasTeamConflict) {
           hasRestIntervalViolation = _checkRestIntervalViolation(
             slot, 
             matchup, 
             teamLastGameEndTime, 
             restInterval, 
-            gameDurationMinutes
+            gameDurationMinutes,
           );
           
           if (hasRestIntervalViolation) {
@@ -579,7 +578,6 @@ class ScheduleGeneratorService {
         scheduledDate: availableSlot.date,
         scheduledTime: availableSlot.startTime,
         estimatedDuration: gameDurationMinutes,
-        status: GameStatus.scheduled,
         notes: 'Auto-generated Round Robin game: ${matchup.team1.name} vs ${matchup.team2.name} at ${availableSlot.resourceName}',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -592,7 +590,7 @@ class ScheduleGeneratorService {
         availableSlot, 
         matchup, 
         teamLastGameEndTime, 
-        gameDurationMinutes
+        gameDurationMinutes,
       );
       
       // Remove the used slot from available slots to prevent double-booking
@@ -700,24 +698,19 @@ class ScheduleGeneratorService {
 
 // Supporting classes
 class TeamMatchup {
-  final TeamModel team1;
-  final TeamModel team2;
 
   TeamMatchup({
     required this.team1,
     required this.team2,
   });
+  final TeamModel team1;
+  final TeamModel team2;
 
   @override
   String toString() => '${team1.name} vs ${team2.name}';
 }
 
 class TimeSlot {
-  final String resourceId;
-  final String resourceName;
-  final DateTime date;
-  final String startTime;
-  final String endTime;
 
   TimeSlot({
     required this.resourceId,
@@ -726,6 +719,11 @@ class TimeSlot {
     required this.startTime,
     required this.endTime,
   });
+  final String resourceId;
+  final String resourceName;
+  final DateTime date;
+  final String startTime;
+  final String endTime;
 
   @override
   String toString() => 

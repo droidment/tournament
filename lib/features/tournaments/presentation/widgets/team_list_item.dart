@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/team_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
 
 class TeamListItem extends StatelessWidget {
-  final TeamModel team;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   const TeamListItem({
     super.key,
@@ -12,6 +9,9 @@ class TeamListItem extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
   });
+  final TeamModel team;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -26,29 +26,13 @@ class TeamListItem extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
                 color: teamColor.withOpacity(0.2),
-                width: 1,
               ),
             )
           : RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
       child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: teamColor.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: teamColor, 
-              width: hasCustomColor ? 2 : 1,
-            ),
-          ),
-          child: Icon(
-            Icons.group,
-            color: teamColor,
-          ),
-        ),
+        leading: _buildLeadingWidget(teamColor, hasCustomColor),
         title: Row(
           children: [
             Expanded(
@@ -94,9 +78,9 @@ class TeamListItem extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 4),
-            Row(
-              children: [
-                if (team.contactEmail?.isNotEmpty == true) ...[
+            if (team.contactEmail?.isNotEmpty == true) 
+              Row(
+                children: [
                   Icon(
                     Icons.email,
                     size: 16,
@@ -114,24 +98,7 @@ class TeamListItem extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (team.seed != null) ...[
-                  const SizedBox(width: 16),
-                  Icon(
-                    Icons.star,
-                    size: 16,
-                    color: hasCustomColor ? Colors.black54 : Colors.grey[600],
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Seed: ${team.seed}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: hasCustomColor ? Colors.black54 : Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ],
-            ),
+              ),
           ],
         ),
         trailing: PopupMenuButton<String>(
@@ -139,10 +106,8 @@ class TeamListItem extends StatelessWidget {
             switch (value) {
               case 'edit':
                 onEdit();
-                break;
               case 'delete':
                 onDelete();
-                break;
             }
           },
           itemBuilder: (context) => [
@@ -166,5 +131,58 @@ class TeamListItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildLeadingWidget(Color teamColor, bool hasCustomColor) {
+    if (team.seed != null) {
+      // Display seed number as circular badge
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: teamColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white, 
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            '${team.seed}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Display generic team icon
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: teamColor.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: teamColor, 
+            width: hasCustomColor ? 2 : 1,
+          ),
+        ),
+        child: Icon(
+          Icons.group,
+          color: teamColor,
+        ),
+      );
+    }
   }
 } 

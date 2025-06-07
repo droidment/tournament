@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../bloc/tournament_bloc.dart';
-import '../../bloc/tournament_event.dart';
-import '../../bloc/tournament_state.dart';
-import '../../data/models/tournament_model.dart';
+import 'package:teamapp3/features/tournaments/bloc/tournament_bloc.dart';
+import 'package:teamapp3/features/tournaments/bloc/tournament_event.dart';
+import 'package:teamapp3/features/tournaments/bloc/tournament_state.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_model.dart';
 
 class TournamentManagementPage extends StatefulWidget {
   const TournamentManagementPage({super.key});
@@ -36,50 +36,63 @@ class _TournamentManagementPageState extends State<TournamentManagementPage> {
           ),
         ],
       ),
-      body: BlocBuilder<TournamentBloc, TournamentState>(
-        builder: (context, state) {
-          if (state.status == TournamentBlocStatus.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
+      body: BlocListener<TournamentBloc, TournamentState>(
+        listener: (context, state) {
           if (state.status == TournamentBlocStatus.error) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading tournaments',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(state.errorMessage ?? 'Unknown error'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => context.read<TournamentBloc>().add(
-                          const UserTournamentsLoadRequested(),
-                        ),
-                    child: const Text('Retry'),
-                  ),
-                ],
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.errorMessage ?? 'Unknown error'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
               ),
             );
           }
-
-          if (state.tournaments.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: state.tournaments.length,
-            itemBuilder: (context, index) {
-              final tournament = state.tournaments[index];
-              return _buildTournamentCard(tournament);
-            },
-          );
         },
+        child: BlocBuilder<TournamentBloc, TournamentState>(
+          builder: (context, state) {
+            if (state.status == TournamentBlocStatus.loading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state.status == TournamentBlocStatus.error) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading tournaments',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(state.errorMessage ?? 'Unknown error'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.read<TournamentBloc>().add(
+                            const UserTournamentsLoadRequested(),
+                          ),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (state.tournaments.isEmpty) {
+              return _buildEmptyState();
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: state.tournaments.length,
+              itemBuilder: (context, index) {
+                final tournament = state.tournaments[index];
+                return _buildTournamentCard(tournament);
+              },
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/tournaments/create'),
@@ -156,6 +169,41 @@ class _TournamentManagementPageState extends State<TournamentManagementPage> {
                   ),
                 ),
                 _buildStatusChip(tournament.status),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'edit':
+                        _showEditTournament(tournament);
+                        break;
+                      case 'delete':
+                        _showDeleteConfirmation(tournament);
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 18),
+                          SizedBox(width: 8),
+                          Text('Edit'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 18, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Delete', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -252,23 +300,18 @@ class _TournamentManagementPageState extends State<TournamentManagementPage> {
       case TournamentStatus.draft:
         color = Colors.grey;
         label = 'Draft';
-        break;
       case TournamentStatus.registration:
         color = Colors.blue;
         label = 'Registration';
-        break;
       case TournamentStatus.inProgress:
         color = Colors.green;
         label = 'In Progress';
-        break;
       case TournamentStatus.completed:
         color = Colors.purple;
         label = 'Completed';
-        break;
       case TournamentStatus.cancelled:
         color = Colors.red;
         label = 'Cancelled';
-        break;
     }
 
     return Chip(
@@ -322,6 +365,8 @@ class _TournamentManagementPageState extends State<TournamentManagementPage> {
         return 'Double Elimination';
       case TournamentFormat.swiss:
         return 'Swiss System';
+      case TournamentFormat.tiered:
+        return 'Tiered Tournament';
       case TournamentFormat.custom:
         return 'Custom';
     }
@@ -332,6 +377,180 @@ class _TournamentManagementPageState extends State<TournamentManagementPage> {
       SnackBar(
         content: Text('$feature feature coming soon!'),
         duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showEditTournament(TournamentModel tournament) {
+    // Navigate to edit tournament page
+    context.go('/tournaments/${tournament.id}/edit');
+  }
+
+  void _showDeleteConfirmation(TournamentModel tournament) {
+    final tournamentBloc = context.read<TournamentBloc>();
+    
+    showDialog(
+      context: context,
+      builder: (context) => BlocProvider.value(
+        value: tournamentBloc,
+        child: AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.warning, color: Colors.red),
+            const SizedBox(width: 8),
+            const Text('Delete Tournament'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete "${tournament.name}"?',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text('This action will permanently delete:'),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.emoji_events, color: Colors.red, size: 16),
+                      const SizedBox(width: 6),
+                      const Text('The tournament and all its data'),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.group, color: Colors.red, size: 16),
+                      const SizedBox(width: 6),
+                      const Text('All teams and team members'),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule, color: Colors.red, size: 16),
+                      const SizedBox(width: 6),
+                      const Text('All games and schedules'),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.analytics, color: Colors.red, size: 16),
+                      const SizedBox(width: 6),
+                      const Text('All statistics and standings'),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.category, color: Colors.red, size: 16),
+                      const SizedBox(width: 6),
+                      const Text('All categories and resources'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 16),
+                  const SizedBox(width: 6),
+                  const Expanded(
+                    child: Text(
+                      'This action cannot be undone!',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          BlocBuilder<TournamentBloc, TournamentState>(
+            builder: (context, state) {
+              return FilledButton(
+                                 onPressed: state.isDeleting 
+                     ? null 
+                     : () {
+                         Navigator.of(context).pop();
+                         context.read<TournamentBloc>().add(
+                           TournamentDeleteRequested(tournament.id),
+                         );
+                         
+                         // Show success message
+                         Future.delayed(const Duration(milliseconds: 500), () {
+                           if (context.mounted) {
+                             ScaffoldMessenger.of(context).showSnackBar(
+                               SnackBar(
+                                 content: Text('Tournament "${tournament.name}" deleted successfully'),
+                                 backgroundColor: Colors.green,
+                                 duration: const Duration(seconds: 3),
+                               ),
+                             );
+                           }
+                         });
+                       },
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: state.isDeleting
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Deleting...'),
+                        ],
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.delete_forever, size: 16),
+                          const SizedBox(width: 4),
+                          const Text('Delete Tournament'),
+                        ],
+                      ),
+              );
+            },
+          ),
+        ],
+        ),
       ),
     );
   }

@@ -8,12 +8,6 @@ abstract class CategoryEvent extends Equatable {
 }
 
 class CategoryCreateRequested extends CategoryEvent {
-  final String tournamentId;
-  final String name;
-  final String? description;
-  final int? maxTeams;
-  final int minTeams;
-  final int displayOrder;
 
   const CategoryCreateRequested({
     required this.tournamentId,
@@ -23,6 +17,12 @@ class CategoryCreateRequested extends CategoryEvent {
     this.minTeams = 2,
     this.displayOrder = 0,
   });
+  final String tournamentId;
+  final String name;
+  final String? description;
+  final int? maxTeams;
+  final int minTeams;
+  final int displayOrder;
 
   @override
   List<Object?> get props => [
@@ -36,22 +36,15 @@ class CategoryCreateRequested extends CategoryEvent {
 }
 
 class TournamentCategoriesLoadRequested extends CategoryEvent {
-  final String tournamentId;
 
   const TournamentCategoriesLoadRequested(this.tournamentId);
+  final String tournamentId;
 
   @override
   List<Object?> get props => [tournamentId];
 }
 
 class CategoryUpdateRequested extends CategoryEvent {
-  final String categoryId;
-  final String? name;
-  final String? description;
-  final int? maxTeams;
-  final int? minTeams;
-  final bool? isActive;
-  final int? displayOrder;
 
   const CategoryUpdateRequested({
     required this.categoryId,
@@ -62,6 +55,13 @@ class CategoryUpdateRequested extends CategoryEvent {
     this.isActive,
     this.displayOrder,
   });
+  final String categoryId;
+  final String? name;
+  final String? description;
+  final int? maxTeams;
+  final int? minTeams;
+  final bool? isActive;
+  final int? displayOrder;
 
   @override
   List<Object?> get props => [
@@ -76,27 +76,27 @@ class CategoryUpdateRequested extends CategoryEvent {
 }
 
 class CategoryDeleteRequested extends CategoryEvent {
-  final String categoryId;
 
   const CategoryDeleteRequested(this.categoryId);
+  final String categoryId;
 
   @override
   List<Object?> get props => [categoryId];
 }
 
 class CategoriesReorderRequested extends CategoryEvent {
-  final List<Map<String, dynamic>> categoryOrders;
 
   const CategoriesReorderRequested(this.categoryOrders);
+  final List<Map<String, dynamic>> categoryOrders;
 
   @override
   List<Object?> get props => [categoryOrders];
 }
 
 class DefaultCategoriesCreateRequested extends CategoryEvent {
-  final String tournamentId;
 
   const DefaultCategoriesCreateRequested(this.tournamentId);
+  final String tournamentId;
 
   @override
   List<Object?> get props => [tournamentId];

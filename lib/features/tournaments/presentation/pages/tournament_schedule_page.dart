@@ -10,9 +10,12 @@ import '../../data/repositories/game_repository.dart';
 import '../../data/repositories/team_repository.dart';
 import '../../data/repositories/tournament_resource_repository.dart';
 import '../../data/repositories/category_repository.dart';
+import '../../data/repositories/tournament_repository.dart';
 import '../widgets/generate_schedule_dialog.dart';
 import '../widgets/tournament_standings_widget.dart';
+import '../widgets/tiered_schedule_manager.dart';
 import '../../data/services/tournament_standings_service.dart';
+import '../../data/services/tournament_phase_service.dart';
 import '../../data/services/export_service.dart';
 import '../../data/models/tournament_model.dart';
 import '../../../../core/models/tournament_standings_model.dart';
@@ -38,6 +41,8 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   final TeamRepository _teamRepository = TeamRepository();
   final TournamentResourceRepository _resourceRepository = TournamentResourceRepository();
   final CategoryRepository _categoryRepository = CategoryRepository();
+  final TournamentRepository _tournamentRepository = TournamentRepository();
+  final TournamentPhaseService _phaseService = TournamentPhaseService();
   
   List<GameModel> _allGames = [];
   List<GameModel> _scheduledGames = [];
@@ -48,6 +53,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   Map<String, TeamModel> _teamMap = {};
   Map<String, TournamentResourceModel> _resourceMap = {};
   Map<String, CategoryModel> _categoryMap = {};
+  TournamentModel? _tournament;
   bool _isLoading = true;
   Map<String, dynamic> _stats = {};
   bool _isScheduleView = false;
@@ -63,6 +69,12 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
   List<GameModel> _filteredScheduledGames = [];
   List<GameModel> _filteredCompletedGames = [];
   List<TeamModel> _filteredTeams = [];
+  
+  // Tournament Phase Management
+  bool _roundRobinComplete = false;
+  bool _eliminationActive = false;
+  String _currentPhase = 'setup';
+  String? _nextPhase;
 
   @override
   void initState() {
@@ -81,6 +93,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
     setState(() => _isLoading = true);
     
     try {
+      final tournament = await _tournamentRepository.getTournament(widget.tournamentId);
       final games = await _repository.getTournamentGames(widget.tournamentId);
       final stats = await _repository.getTournamentGameStats(widget.tournamentId);
       final teams = await _teamRepository.getTournamentTeams(widget.tournamentId);
@@ -106,6 +119,7 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       }
       
       setState(() {
+        _tournament = tournament;
         _allGames = games;
         // Include games that are scheduled OR in progress (with/without scores) in scheduled list
         _scheduledGames = games.where((g) => 
@@ -122,6 +136,9 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
         _isLoading = false;
       });
       
+      // Check tournament phase status
+      _checkTournamentPhase();
+      
       // Apply filters after loading data
       _applyFilters();
     } catch (e) {
@@ -134,6 +151,23 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
           ),
         );
       }
+    }
+  }
+
+  Future<void> _checkTournamentPhase() async {
+    try {
+      final phaseStatus = await _phaseService.getTournamentPhaseStatus(
+        tournamentId: widget.tournamentId,
+      );
+      
+      setState(() {
+        _currentPhase = phaseStatus.currentPhase;
+        _roundRobinComplete = phaseStatus.roundRobinComplete;
+        _eliminationActive = phaseStatus.eliminationActive;
+        _nextPhase = phaseStatus.nextPhase;
+      });
+    } catch (e) {
+      print('Error checking tournament phase: $e');
     }
   }
 
@@ -474,27 +508,29 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
             }
           },
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(
-              icon: const Icon(Icons.schedule),
-              text: 'All Games (${_filteredAllGames.isNotEmpty ? _filteredAllGames.length : _allGames.length})',
-            ),
-            Tab(
-              icon: const Icon(Icons.event),
-              text: 'Scheduled (${_filteredScheduledGames.isNotEmpty ? _filteredScheduledGames.length : _scheduledGames.length})',
-            ),
-            Tab(
-              icon: const Icon(Icons.check_circle),
-              text: 'Completed (${_filteredCompletedGames.isNotEmpty ? _filteredCompletedGames.length : _completedGames.length})',
-            ),
-            const Tab(
-              icon: Icon(Icons.leaderboard),
-              text: 'Standings',
-            ),
-          ],
-        ),
+        bottom: _tournament?.format == TournamentFormat.tiered 
+            ? null 
+            : TabBar(
+                controller: _tabController,
+                tabs: [
+                  Tab(
+                    icon: const Icon(Icons.schedule),
+                    text: 'All Games (${_filteredAllGames.isNotEmpty ? _filteredAllGames.length : _allGames.length})',
+                  ),
+                  Tab(
+                    icon: const Icon(Icons.event),
+                    text: 'Scheduled (${_filteredScheduledGames.isNotEmpty ? _filteredScheduledGames.length : _scheduledGames.length})',
+                  ),
+                  Tab(
+                    icon: const Icon(Icons.check_circle),
+                    text: 'Completed (${_filteredCompletedGames.isNotEmpty ? _filteredCompletedGames.length : _completedGames.length})',
+                  ),
+                  const Tab(
+                    icon: Icon(Icons.leaderboard),
+                    text: 'Standings',
+                  ),
+                ],
+              ),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {
@@ -568,7 +604,16 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : NestedScrollView(
+          : _tournament?.format == TournamentFormat.tiered
+              ? TieredScheduleManager(
+                  tournamentId: widget.tournamentId,
+                  tournamentName: widget.tournamentName,
+                  teams: _teams,
+                  resources: _resources,
+                  existingGames: _allGames,
+                  onScheduleUpdated: _loadGames,
+                )
+              : NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) {
                 return [
                   SliverList(
@@ -594,12 +639,12 @@ class _TournamentSchedulePageState extends State<TournamentSchedulePage>
                   TournamentStandingsWidget(
                     standings: TournamentStandingsService.calculateStandings(
                       tournamentId: widget.tournamentId,
-                      format: TournamentFormat.roundRobin, // Default format
+                      format: _tournament?.format ?? TournamentFormat.roundRobin,
                       games: _allGames, // Always use all games for accurate standings calculation
                       teams: _hasActiveFilters() ? _filteredTeams : _teams, // Filter teams for display
                       phase: 'tournament',
                     ),
-                    format: TournamentFormat.roundRobin,
+                    format: _tournament?.format ?? TournamentFormat.roundRobin,
                     onRefresh: _loadGames,
                   ),
                 ],

@@ -4,7 +4,10 @@ import 'package:json_annotation/json_annotation.dart';
 part 'tournament_standings_model.g.dart';
 
 @JsonSerializable()
-class TournamentStandingsModel extends Equatable {
+class TournamentStandingsModel extends Equatable { // Whether these standings are final/complete
+
+  factory TournamentStandingsModel.fromJson(Map<String, dynamic> json) =>
+      _$TournamentStandingsModelFromJson(json);
   const TournamentStandingsModel({
     required this.tournamentId,
     required this.teamStandings,
@@ -28,10 +31,7 @@ class TournamentStandingsModel extends Equatable {
   final String? phase; // group_stage, playoffs, finals, etc.
   
   @JsonKey(name: 'is_final')
-  final bool isFinal; // Whether these standings are final/complete
-
-  factory TournamentStandingsModel.fromJson(Map<String, dynamic> json) =>
-      _$TournamentStandingsModelFromJson(json);
+  final bool isFinal;
 
   Map<String, dynamic> toJson() => _$TournamentStandingsModelToJson(this);
 
@@ -65,7 +65,10 @@ class TournamentStandingsModel extends Equatable {
 }
 
 @JsonSerializable()
-class TeamStandingModel extends Equatable {
+class TeamStandingModel extends Equatable { // For Swiss system tie-breaking
+
+  factory TeamStandingModel.fromJson(Map<String, dynamic> json) =>
+      _$TeamStandingModelFromJson(json);
   const TeamStandingModel({
     required this.teamId,
     required this.teamName,
@@ -133,10 +136,7 @@ class TeamStandingModel extends Equatable {
   final bool advancesToNextRound;
   
   @JsonKey(name: 'tie_break_value')
-  final double? tieBreakValue; // For Swiss system tie-breaking
-
-  factory TeamStandingModel.fromJson(Map<String, dynamic> json) =>
-      _$TeamStandingModelFromJson(json);
+  final double? tieBreakValue;
 
   Map<String, dynamic> toJson() => _$TeamStandingModelToJson(this);
 

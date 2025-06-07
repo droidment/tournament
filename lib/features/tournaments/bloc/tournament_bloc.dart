@@ -4,7 +4,6 @@ import 'package:teamapp3/features/tournaments/bloc/tournament_state.dart';
 import 'package:teamapp3/features/tournaments/data/repositories/tournament_repository.dart';
 
 class TournamentBloc extends Bloc<TournamentEvent, TournamentState> {
-  final TournamentRepository _tournamentRepository;
 
   TournamentBloc({TournamentRepository? tournamentRepository})
       : _tournamentRepository = tournamentRepository ?? TournamentRepository(),
@@ -15,6 +14,7 @@ class TournamentBloc extends Bloc<TournamentEvent, TournamentState> {
     on<TournamentUpdateRequested>(_onTournamentUpdateRequested);
     on<TournamentDeleteRequested>(_onTournamentDeleteRequested);
   }
+  final TournamentRepository _tournamentRepository;
 
   Future<void> _onTournamentCreateRequested(
     TournamentCreateRequested event,
@@ -32,7 +32,7 @@ class TournamentBloc extends Bloc<TournamentEvent, TournamentState> {
       );
       emit(state.toSuccess(tournament: tournament));
     } catch (e) {
-      emit(state.toError('Failed to create tournament: ${e.toString()}'));
+      emit(state.toError('Failed to create tournament: ${e}'));
     }
   }
 
@@ -50,7 +50,7 @@ class TournamentBloc extends Bloc<TournamentEvent, TournamentState> {
         emit(state.toError('Tournament not found'));
       }
     } catch (e) {
-      emit(state.toError('Failed to load tournament: ${e.toString()}'));
+      emit(state.toError('Failed to load tournament: ${e}'));
     }
   }
 
@@ -64,7 +64,7 @@ class TournamentBloc extends Bloc<TournamentEvent, TournamentState> {
       final tournaments = await _tournamentRepository.getUserTournaments();
       emit(state.toSuccess(tournaments: tournaments));
     } catch (e) {
-      emit(state.toError('Failed to load tournaments: ${e.toString()}'));
+      emit(state.toError('Failed to load tournaments: ${e}'));
     }
   }
 
@@ -86,7 +86,7 @@ class TournamentBloc extends Bloc<TournamentEvent, TournamentState> {
       );
       emit(state.toSuccess(tournament: tournament));
     } catch (e) {
-      emit(state.toError('Failed to update tournament: ${e.toString()}'));
+      emit(state.toError('Failed to update tournament: ${e}'));
     }
   }
 
@@ -104,7 +104,7 @@ class TournamentBloc extends Bloc<TournamentEvent, TournamentState> {
           .toList();
       emit(state.toSuccess(tournaments: updatedTournaments));
     } catch (e) {
-      emit(state.toError('Failed to delete tournament: ${e.toString()}'));
+      emit(state.toError('Failed to delete tournament: ${e}'));
     }
   }
 } 

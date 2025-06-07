@@ -85,7 +85,7 @@ class _SignUpPageState extends State<SignUpPage> {
         builder: (context, state) {
           return SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(24),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -246,7 +246,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Already have an account? "),
+                        const Text('Already have an account? '),
                         TextButton(
                           onPressed: _navigateToSignIn,
                           child: const Text('Sign In'),

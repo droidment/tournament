@@ -9,16 +9,6 @@ abstract class TournamentEvent extends Equatable {
 }
 
 class TournamentCreateRequested extends TournamentEvent {
-  final String name;
-  final String? description;
-  final TournamentFormat format;
-  final DateTime startDate;
-  final DateTime endDate;
-  final String? location;
-  final int? maxTeams;
-  final DateTime? registrationDeadline;
-  final String? rules;
-  final String? prizeDescription;
 
   const TournamentCreateRequested({
     required this.name,
@@ -32,6 +22,16 @@ class TournamentCreateRequested extends TournamentEvent {
     this.rules,
     this.prizeDescription,
   });
+  final String name;
+  final String? description;
+  final TournamentFormat format;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String? location;
+  final int? maxTeams;
+  final DateTime? registrationDeadline;
+  final String? rules;
+  final String? prizeDescription;
 
   @override
   List<Object?> get props => [
@@ -49,9 +49,9 @@ class TournamentCreateRequested extends TournamentEvent {
 }
 
 class TournamentLoadRequested extends TournamentEvent {
-  final String tournamentId;
 
   const TournamentLoadRequested(this.tournamentId);
+  final String tournamentId;
 
   @override
   List<Object?> get props => [tournamentId];
@@ -62,18 +62,6 @@ class UserTournamentsLoadRequested extends TournamentEvent {
 }
 
 class TournamentUpdateRequested extends TournamentEvent {
-  final String tournamentId;
-  final String? name;
-  final String? description;
-  final TournamentFormat? format;
-  final TournamentStatus? status;
-  final DateTime? startDate;
-  final DateTime? endDate;
-  final String? location;
-  final int? maxTeams;
-  final DateTime? registrationDeadline;
-  final String? rules;
-  final String? prizeDescription;
 
   const TournamentUpdateRequested({
     required this.tournamentId,
@@ -89,6 +77,18 @@ class TournamentUpdateRequested extends TournamentEvent {
     this.rules,
     this.prizeDescription,
   });
+  final String tournamentId;
+  final String? name;
+  final String? description;
+  final TournamentFormat? format;
+  final TournamentStatus? status;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final String? location;
+  final int? maxTeams;
+  final DateTime? registrationDeadline;
+  final String? rules;
+  final String? prizeDescription;
 
   @override
   List<Object?> get props => [
@@ -108,9 +108,9 @@ class TournamentUpdateRequested extends TournamentEvent {
 }
 
 class TournamentDeleteRequested extends TournamentEvent {
-  final String tournamentId;
 
   const TournamentDeleteRequested(this.tournamentId);
+  final String tournamentId;
 
   @override
   List<Object?> get props => [tournamentId];

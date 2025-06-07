@@ -1,11 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/tournament_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_model.dart';
 
 class TournamentRepository {
-  final SupabaseClient _supabaseClient;
 
   TournamentRepository({SupabaseClient? supabaseClient})
       : _supabaseClient = supabaseClient ?? Supabase.instance.client;
+  final SupabaseClient _supabaseClient;
 
   Future<TournamentModel> createTournament({
     required String name,
@@ -55,7 +55,7 @@ class TournamentRepository {
         .eq('organizer_id', user.id)
         .order('created_at', ascending: false);
 
-    return data.map((json) => TournamentModel.fromJson(json)).toList();
+    return data.map(TournamentModel.fromJson).toList();
   }
 
   Future<TournamentModel> updateTournament({

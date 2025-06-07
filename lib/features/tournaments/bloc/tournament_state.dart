@@ -12,13 +12,6 @@ enum TournamentBlocStatus {
 }
 
 class TournamentState extends Equatable {
-  final TournamentBlocStatus status;
-  final TournamentModel? tournament;
-  final List<TournamentModel> tournaments;
-  final String? errorMessage;
-  final bool isCreating;
-  final bool isUpdating;
-  final bool isDeleting;
 
   const TournamentState({
     this.status = TournamentBlocStatus.initial,
@@ -29,6 +22,13 @@ class TournamentState extends Equatable {
     this.isUpdating = false,
     this.isDeleting = false,
   });
+  final TournamentBlocStatus status;
+  final TournamentModel? tournament;
+  final List<TournamentModel> tournaments;
+  final String? errorMessage;
+  final bool isCreating;
+  final bool isUpdating;
+  final bool isDeleting;
 
   TournamentState copyWith({
     TournamentBlocStatus? status,
@@ -52,14 +52,13 @@ class TournamentState extends Equatable {
 
   TournamentState clearError() {
     return copyWith(
-      errorMessage: null,
+      
     );
   }
 
   TournamentState toLoading() {
     return copyWith(
       status: TournamentBlocStatus.loading,
-      errorMessage: null,
     );
   }
 
@@ -67,7 +66,6 @@ class TournamentState extends Equatable {
     return copyWith(
       status: TournamentBlocStatus.creating,
       isCreating: true,
-      errorMessage: null,
     );
   }
 
@@ -75,7 +73,6 @@ class TournamentState extends Equatable {
     return copyWith(
       status: TournamentBlocStatus.updating,
       isUpdating: true,
-      errorMessage: null,
     );
   }
 
@@ -83,7 +80,6 @@ class TournamentState extends Equatable {
     return copyWith(
       status: TournamentBlocStatus.deleting,
       isDeleting: true,
-      errorMessage: null,
     );
   }
 
@@ -95,7 +91,6 @@ class TournamentState extends Equatable {
       status: TournamentBlocStatus.success,
       tournament: tournament ?? this.tournament,
       tournaments: tournaments ?? this.tournaments,
-      errorMessage: null,
       isCreating: false,
       isUpdating: false,
       isDeleting: false,

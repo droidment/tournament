@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/models/game_model.dart';
-import '../../../../core/models/team_model.dart';
-import '../../data/repositories/game_repository.dart';
-import '../../data/repositories/team_repository.dart';
+import 'package:teamapp3/core/models/game_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/game_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/team_repository.dart';
 
 class TournamentAnalyticsPage extends StatefulWidget {
-  final String tournamentId;
-  final String tournamentName;
 
   const TournamentAnalyticsPage({
     super.key,
     required this.tournamentId,
     required this.tournamentName,
   });
+  final String tournamentId;
+  final String tournamentName;
 
   @override
   State<TournamentAnalyticsPage> createState() => _TournamentAnalyticsPageState();
@@ -92,16 +92,16 @@ class _TournamentAnalyticsPageState extends State<TournamentAnalyticsPage>
       final teamGames = games.where((g) => 
           (g.team1Id == team.id || g.team2Id == team.id) && 
           g.status == GameStatus.completed &&
-          g.hasResults).toList();
+          g.hasResults,).toList();
 
-      int wins = 0;
-      int losses = 0;
-      int draws = 0;
-      int totalPointsFor = 0;
-      int totalPointsAgainst = 0;
-      int totalGames = teamGames.length;
+      var wins = 0;
+      var losses = 0;
+      var draws = 0;
+      var totalPointsFor = 0;
+      var totalPointsAgainst = 0;
+      var totalGames = teamGames.length;
       
-      final List<int> scoreMargins = [];
+      final scoreMargins = <int>[];
 
       for (final game in teamGames) {
         final isTeam1 = game.team1Id == team.id;
@@ -165,7 +165,7 @@ class _TournamentAnalyticsPageState extends State<TournamentAnalyticsPage>
     final completionRate = games.isNotEmpty ? completedGames.length / games.length : 0.0;
     
     final totalPoints = completedGames.fold<int>(0, (sum, game) => 
-        sum + (game.team1Score ?? 0) + (game.team2Score ?? 0));
+        sum + (game.team1Score ?? 0) + (game.team2Score ?? 0),);
     
     final avgPointsPerGame = completedGames.isNotEmpty 
         ? totalPoints / completedGames.length 
@@ -389,7 +389,7 @@ class _TournamentAnalyticsPageState extends State<TournamentAnalyticsPage>
                         team.teamName, 
                         '${team.wins} wins',
                         sortedByWins.indexOf(team) + 1,
-                      )),
+                      ),),
                     ],
                   ),
                 ),
@@ -406,7 +406,7 @@ class _TournamentAnalyticsPageState extends State<TournamentAnalyticsPage>
                         team.teamName, 
                         '${team.totalPointsFor} pts',
                         sortedByPoints.indexOf(team) + 1,
-                      )),
+                      ),),
                     ],
                   ),
                 ),
@@ -469,7 +469,7 @@ class _TournamentAnalyticsPageState extends State<TournamentAnalyticsPage>
             if (recentGames.isEmpty) ...[
               const Text('No completed games yet'),
             ] else ...[
-              ...recentGames.take(5).map((game) => _buildRecentGameItem(game)),
+              ...recentGames.take(5).map(_buildRecentGameItem),
             ],
           ],
         ),
@@ -704,20 +704,6 @@ class _TournamentAnalyticsPageState extends State<TournamentAnalyticsPage>
 
 // Data models
 class TeamAnalytics {
-  final String teamId;
-  final String teamName;
-  final int gamesPlayed;
-  final int wins;
-  final int losses;
-  final int draws;
-  final double winPercentage;
-  final int totalPointsFor;
-  final int totalPointsAgainst;
-  final double avgPointsFor;
-  final double avgPointsAgainst;
-  final double avgMargin;
-  final int biggestWin;
-  final int biggestLoss;
 
   TeamAnalytics({
     required this.teamId,
@@ -735,16 +721,23 @@ class TeamAnalytics {
     required this.biggestWin,
     required this.biggestLoss,
   });
+  final String teamId;
+  final String teamName;
+  final int gamesPlayed;
+  final int wins;
+  final int losses;
+  final int draws;
+  final double winPercentage;
+  final int totalPointsFor;
+  final int totalPointsAgainst;
+  final double avgPointsFor;
+  final double avgPointsAgainst;
+  final double avgMargin;
+  final int biggestWin;
+  final int biggestLoss;
 }
 
 class TournamentOverview {
-  final int totalGames;
-  final int completedGames;
-  final int scheduledGames;
-  final double completionRate;
-  final int totalTeams;
-  final double avgPointsPerGame;
-  final double avgMargin;
 
   TournamentOverview({
     required this.totalGames,
@@ -755,4 +748,11 @@ class TournamentOverview {
     required this.avgPointsPerGame,
     required this.avgMargin,
   });
+  final int totalGames;
+  final int completedGames;
+  final int scheduledGames;
+  final double completionRate;
+  final int totalTeams;
+  final double avgPointsPerGame;
+  final double avgMargin;
 } 

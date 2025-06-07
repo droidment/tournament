@@ -1,13 +1,20 @@
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/models/game_model.dart';
-import '../../../../core/models/tournament_standings_model.dart';
-import '../../../../core/models/team_model.dart';
-import '../repositories/game_repository.dart';
-import '../models/tournament_model.dart';
-import 'tournament_standings_service.dart';
+import 'package:teamapp3/core/models/game_model.dart';
+import 'package:teamapp3/core/models/tournament_standings_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/game_repository.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_model.dart';
+import 'package:teamapp3/features/tournaments/data/services/tournament_standings_service.dart';
 
 class LiveScoreService {
+
+  LiveScoreService({SupabaseClient? supabaseClient, GameRepository? gameRepository})
+      : _supabaseClient = supabaseClient ?? Supabase.instance.client,
+        _gameRepository = gameRepository ?? GameRepository() {
+    _initializeRealtimeSubscriptions();
+    _startCacheRefreshTimer();
+  }
   final SupabaseClient _supabaseClient;
   final GameRepository _gameRepository;
   
@@ -24,13 +31,6 @@ class LiveScoreService {
   final Map<String, List<GameModel>> _tournamentGamesCache = {};
   final Map<String, TournamentStandingsModel> _standingsCache = {};
   Timer? _cacheRefreshTimer;
-
-  LiveScoreService({SupabaseClient? supabaseClient, GameRepository? gameRepository})
-      : _supabaseClient = supabaseClient ?? Supabase.instance.client,
-        _gameRepository = gameRepository ?? GameRepository() {
-    _initializeRealtimeSubscriptions();
-    _startCacheRefreshTimer();
-  }
 
   // Getters for streams
   Stream<List<GameModel>> get gamesStream => _gamesController.stream;
@@ -61,54 +61,39 @@ class LiveScoreService {
   }
 
   /// Handle real-time game updates from database
-  void _handleGameUpdate(PostgresChangePayload payload) async {
+  Future<void> _handleGameUpdate(PostgresChangePayload payload) async {
     print('🔄 Live update received: ${payload.eventType} for table ${payload.table}');
     
     try {
       final gameData = payload.newRecord;
-      if (gameData != null) {
-        final game = GameModel.fromJson(gameData);
+      final game = GameModel.fromJson(gameData);
+      
+      // Update cache
+      final tournamentId = game.tournamentId;
+      if (_tournamentGamesCache.containsKey(tournamentId)) {
+        final games = _tournamentGamesCache[tournamentId]!;
+        final index = games.indexWhere((g) => g.id == game.id);
         
-        // Update cache
-        final tournamentId = game.tournamentId;
-        if (_tournamentGamesCache.containsKey(tournamentId)) {
-          final games = _tournamentGamesCache[tournamentId]!;
-          final index = games.indexWhere((g) => g.id == game.id);
-          
-          if (index >= 0) {
-            games[index] = game;
-          } else if (payload.eventType == PostgresChangeEvent.insert) {
-            games.add(game);
-          }
-          
-          // Broadcast updated games list
-          _gamesController.add(List.from(games));
+        if (index >= 0) {
+          games[index] = game;
+        } else if (payload.eventType == PostgresChangeEvent.insert) {
+          games.add(game);
         }
         
-        // Broadcast individual game update
-        _gameUpdateController.add(game);
-        
-        // Update standings if game is completed
-        if (game.status == GameStatus.completed && game.hasResults) {
-          await _updateTournamentStandings(tournamentId);
-        }
-        
-        print('✅ Live update processed for game ${game.id}');
-      } else if (payload.eventType == PostgresChangeEvent.delete) {
-        // Handle game deletion
-        final oldRecord = payload.oldRecord;
-        if (oldRecord != null) {
-          final tournamentId = oldRecord['tournament_id'] as String;
-          final gameId = oldRecord['id'] as String;
-          
-          if (_tournamentGamesCache.containsKey(tournamentId)) {
-            final games = _tournamentGamesCache[tournamentId]!;
-            games.removeWhere((g) => g.id == gameId);
-            _gamesController.add(List.from(games));
-          }
-        }
+        // Broadcast updated games list
+        _gamesController.add(List.from(games));
       }
-    } catch (e) {
+      
+      // Broadcast individual game update
+      _gameUpdateController.add(game);
+      
+      // Update standings if game is completed
+      if (game.status == GameStatus.completed && game.hasResults) {
+        await _updateTournamentStandings(tournamentId);
+      }
+      
+      print('✅ Live update processed for game ${game.id}');
+        } catch (e) {
       print('❌ Error processing live update: $e');
     }
   }
@@ -126,7 +111,7 @@ class LiveScoreService {
       print('🎯 Updating game score: $gameId - $team1Score:$team2Score');
 
       // Determine winner if not provided
-      String? finalWinnerId = winnerId;
+      var finalWinnerId = winnerId;
       if (finalWinnerId == null && team1Score != team2Score) {
         final game = await _gameRepository.getGame(gameId);
         if (game != null && game.hasTeams) {
@@ -135,7 +120,7 @@ class LiveScoreService {
       }
 
       // Determine status if not provided
-      GameStatus finalStatus = status ?? GameStatus.inProgress;
+      var finalStatus = status ?? GameStatus.inProgress;
       if (status == null) {
         // Auto-determine status based on context
         if (team1Score > 0 || team2Score > 0) {
@@ -199,7 +184,7 @@ class LiveScoreService {
       }
 
       // Determine winner
-      String? finalWinnerId = winnerId;
+      var finalWinnerId = winnerId;
       if (finalWinnerId == null && game.hasTeams) {
         if (team1Score > team2Score) {
           finalWinnerId = game.team1Id;

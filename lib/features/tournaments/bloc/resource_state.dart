@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../../../core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
 
 enum ResourceBlocStatus {
   initial,
@@ -12,11 +12,6 @@ enum ResourceBlocStatus {
 }
 
 class ResourceState extends Equatable {
-  final ResourceBlocStatus status;
-  final List<TournamentResourceModel> resources;
-  final List<String> resourceTypes;
-  final TournamentResourceModel? selectedResource;
-  final String? errorMessage;
 
   const ResourceState({
     this.status = ResourceBlocStatus.initial,
@@ -25,6 +20,11 @@ class ResourceState extends Equatable {
     this.selectedResource,
     this.errorMessage,
   });
+  final ResourceBlocStatus status;
+  final List<TournamentResourceModel> resources;
+  final List<String> resourceTypes;
+  final TournamentResourceModel? selectedResource;
+  final String? errorMessage;
 
   ResourceState copyWith({
     ResourceBlocStatus? status,
@@ -45,28 +45,24 @@ class ResourceState extends Equatable {
   ResourceState toLoading() {
     return copyWith(
       status: ResourceBlocStatus.loading,
-      errorMessage: null,
     );
   }
 
   ResourceState toCreating() {
     return copyWith(
       status: ResourceBlocStatus.creating,
-      errorMessage: null,
     );
   }
 
   ResourceState toUpdating() {
     return copyWith(
       status: ResourceBlocStatus.updating,
-      errorMessage: null,
     );
   }
 
   ResourceState toDeleting() {
     return copyWith(
       status: ResourceBlocStatus.deleting,
-      errorMessage: null,
     );
   }
 
@@ -80,7 +76,6 @@ class ResourceState extends Equatable {
       resources: resources ?? this.resources,
       resourceTypes: resourceTypes ?? this.resourceTypes,
       selectedResource: selectedResource,
-      errorMessage: null,
     );
   }
 

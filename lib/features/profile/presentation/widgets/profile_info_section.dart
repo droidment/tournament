@@ -3,12 +3,12 @@ import 'package:intl/intl.dart';
 import 'package:teamapp3/features/profile/data/models/user_profile_model.dart';
 
 class ProfileInfoSection extends StatelessWidget {
-  final UserProfileModel profile;
 
   const ProfileInfoSection({
     super.key,
     required this.profile,
   });
+  final UserProfileModel profile;
 
   @override
   Widget build(BuildContext context) {
@@ -128,10 +128,6 @@ class ProfileInfoSection extends StatelessWidget {
 }
 
 class _InfoItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final int maxLines;
 
   const _InfoItem({
     required this.icon,
@@ -139,6 +135,10 @@ class _InfoItem extends StatelessWidget {
     required this.value,
     this.maxLines = 1,
   });
+  final IconData icon;
+  final String label;
+  final String value;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {

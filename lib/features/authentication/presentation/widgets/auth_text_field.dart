@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 class AuthTextField extends StatelessWidget {
   const AuthTextField({
-    super.key,
-    required this.controller,
-    required this.labelText,
+    required this.controller, required this.labelText, super.key,
     this.keyboardType,
     this.obscureText = false,
     this.prefixIcon,

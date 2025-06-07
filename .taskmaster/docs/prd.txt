@@ -1,0 +1,132 @@
+# Tournament Management App - Product Requirements Document
+
+## Project Overview
+A comprehensive Flutter tournament management application that helps organize and manage sports tournaments, teams, schedules, and games. The app provides features for creating tournaments, managing teams, scheduling games, tracking standings, and generating various tournament formats.
+
+## Core Features
+
+### 1. Tournament Management
+- Create and manage multiple tournaments
+- Support for different tournament formats:
+  - Round Robin
+  - Single Elimination
+  - Double Elimination
+  - Swiss System
+  - Custom formats
+- Tournament categories and grouping
+- Tournament settings and configuration
+
+### 2. Team Management
+- Team registration and management
+- Team profiles with details
+- Team categorization
+- Player roster management
+- Team statistics tracking
+
+### 3. Game Scheduling
+- Advanced scheduling system with conflict detection
+- Back-to-back game prevention with configurable rest intervals
+- Resource management (courts, fields, facilities)
+- Time slot management
+- Drag-and-drop schedule editing
+- Schedule export functionality
+
+### 4. Tournament Formats
+- Round Robin tournament generation
+- Elimination bracket creation
+- Swiss system pairing
+- Playoff bracket generation
+- Seeding and ranking system
+
+### 5. Standings and Statistics
+- Real-time tournament standings
+- Team statistics and performance metrics
+- Game results tracking
+- Points calculation system
+- Leaderboards and rankings
+
+### 6. User Interface
+- Modern, responsive Flutter UI
+- Dark/light theme support
+- Intuitive navigation
+- Mobile-first design
+- Cross-platform compatibility (iOS, Android, Web)
+
+### 7. Data Management
+- Supabase backend integration
+- Real-time data synchronization
+- Offline capability
+- Data export features
+- Tournament data backup
+
+## Technical Requirements
+
+### Frontend
+- Flutter framework
+- Dart programming language
+- Material Design UI components
+- State management (Provider/Bloc)
+- Responsive layout design
+
+### Backend
+- Supabase for database and authentication
+- PostgreSQL database
+- Real-time subscriptions
+- RESTful API integration
+
+### Platforms
+- Android (APK generation)
+- iOS
+- Web (with Netlify deployment)
+- Progressive Web App (PWA) support
+
+## Architecture
+- Clean Architecture pattern
+- Feature-based directory structure
+- Repository pattern for data access
+- Service layer for business logic
+- Proper separation of concerns
+
+## Current Implementation Status
+The app already has:
+- Basic tournament management
+- Team management system
+- Round robin scheduling with back-to-back prevention
+- Game management and scheduling
+- Tournament standings calculation
+- Web deployment setup
+- Database schema and migrations
+
+## Next Development Phases
+
+### Phase 1: Enhanced Tournament Formats
+- Implement single/double elimination brackets
+- Add Swiss system tournament support
+- Create playoff bracket generation
+- Improve tournament phase management
+
+### Phase 2: Advanced Features
+- Live score updates and real-time notifications
+- Enhanced statistics and analytics
+- Tournament reporting and export features
+- Advanced filtering and search capabilities
+
+### Phase 3: User Experience
+- Mobile app optimization
+- Performance improvements
+- Enhanced UI/UX design
+- Accessibility features
+
+### Phase 4: Advanced Functionality
+- Multi-language support
+- Tournament templates
+- Integration with external APIs
+- Advanced tournament management tools
+
+## Success Metrics
+- Successful tournament creation and management
+- Efficient game scheduling without conflicts
+- Accurate standings calculation
+- Smooth user experience across platforms
+- Reliable data synchronization
+- High user satisfaction and adoption 

@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/models/game_model.dart';
-import '../../../../core/models/team_model.dart';
-import '../../../../core/models/tournament_resource_model.dart';
-import '../../../../core/models/tournament_bracket_model.dart';
-import '../../data/repositories/game_repository.dart';
-import '../../data/repositories/team_repository.dart';
-import '../../data/repositories/tournament_resource_repository.dart';
-import '../../data/services/bracket_generator_service.dart';
-import '../widgets/tournament_bracket_widget.dart';
-import '../widgets/generate_bracket_dialog.dart';
+import 'package:teamapp3/core/models/game_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/tournament_bracket_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/game_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/team_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/tournament_resource_repository.dart';
+import 'package:teamapp3/features/tournaments/data/services/bracket_generator_service.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/tournament_bracket_widget.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/generate_bracket_dialog.dart';
 
 class TournamentBracketPage extends StatefulWidget {
-  final String tournamentId;
-  final String tournamentName;
 
   const TournamentBracketPage({
     super.key,
     required this.tournamentId,
     required this.tournamentName,
   });
+  final String tournamentId;
+  final String tournamentName;
 
   @override
   State<TournamentBracketPage> createState() => _TournamentBracketPageState();
@@ -44,8 +44,8 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
   
   // State
   bool _isLoading = true;
-  bool _isGenerating = false;
-  String _selectedFormat = 'single_elimination';
+  final bool _isGenerating = false;
+  final String _selectedFormat = 'single_elimination';
 
   @override
   void initState() {
@@ -128,7 +128,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
         final roundGames = gamesByRound[roundNumber]!;
         final matches = <BracketMatchModel>[];
         
-        for (int i = 0; i < roundGames.length; i++) {
+        for (var i = 0; i < roundGames.length; i++) {
           final game = roundGames[i];
           matches.add(BracketMatchModel(
             matchNumber: i + 1,
@@ -143,7 +143,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
             scheduledDateTime: game.scheduledDate != null && game.scheduledTime != null
                 ? DateTime.parse('${game.scheduledDate!.toIso8601String().split('T')[0]} ${game.scheduledTime}')
                 : null,
-          ));
+          ),);
         }
         
         rounds.add(BracketRoundModel(
@@ -151,7 +151,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
           roundName: _getRoundName(roundNumber, sortedRounds.length),
           matches: matches,
           isComplete: matches.every((m) => m.isComplete),
-        ));
+        ),);
       }
       
       // Determine bracket format based on structure
@@ -242,13 +242,10 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
                 switch (value) {
                   case 'export':
                     _exportBracket();
-                    break;
                   case 'fullscreen':
                     _openFullscreenBracket();
-                    break;
                   case 'print':
                     _printBracket();
-                    break;
                 }
               },
               itemBuilder: (context) => [
@@ -299,7 +296,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
             ),
       floatingActionButton: _bracket == null && _teams.isNotEmpty
           ? FloatingActionButton.extended(
-              onPressed: () => _showGenerateBracketDialog(),
+              onPressed: _showGenerateBracketDialog,
               icon: const Icon(Icons.auto_fix_high),
               label: const Text('Generate Bracket'),
             )
@@ -320,8 +317,6 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
             bracket: _bracket!,
             teamMap: _teamMap,
             onMatchTap: _handleMatchTap,
-            showScores: true,
-            isInteractive: true,
           ),
         ),
       ],
@@ -367,7 +362,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
 
     final totalMatches = _bracket!.rounds.fold<int>(0, (sum, round) => sum + round.matches.length);
     final completedMatches = _bracket!.rounds.fold<int>(0, (sum, round) => 
-        sum + round.matches.where((m) => m.isComplete).length);
+        sum + round.matches.where((m) => m.isComplete).length,);
     final progress = totalMatches > 0 ? completedMatches / totalMatches : 0.0;
 
     return Column(
@@ -420,7 +415,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
           ),
         ),
         const SizedBox(height: 16),
-        ..._bracket!.rounds.map((round) => _buildRoundResults(round)),
+        ..._bracket!.rounds.map(_buildRoundResults),
       ],
     );
   }
@@ -459,7 +454,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
               ],
             ),
             const SizedBox(height: 12),
-            ...round.matches.map((match) => _buildMatchResult(match)),
+            ...round.matches.map(_buildMatchResult),
           ],
         ),
       ),
@@ -650,7 +645,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
           const SizedBox(height: 32),
           if (_teams.isNotEmpty) ...[
             ElevatedButton.icon(
-              onPressed: () => _showGenerateBracketDialog(),
+              onPressed: _showGenerateBracketDialog,
               icon: const Icon(Icons.auto_fix_high),
               label: const Text('Generate Bracket'),
               style: ElevatedButton.styleFrom(
@@ -757,12 +752,25 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
               subtitle: const Text('View bracket in fullscreen mode'),
               onTap: _openFullscreenBracket,
             ),
+            const Divider(),
             if (!_bracket!.isComplete) ...[
-              const Divider(),
               ListTile(
                 leading: const Icon(Icons.warning, color: Colors.red),
                 title: const Text('Reset Bracket'),
                 subtitle: const Text('Delete current bracket and start over'),
+                onTap: _showResetBracketDialog,
+              ),
+            ] else ...[
+              ListTile(
+                leading: const Icon(Icons.auto_fix_high, color: Colors.blue),
+                title: const Text('Generate New Bracket'),
+                subtitle: const Text('Create a new bracket with different format or settings'),
+                onTap: _showGenerateNewBracketDialog,
+              ),
+              ListTile(
+                leading: const Icon(Icons.warning, color: Colors.red),
+                title: const Text('Reset & Start Over'),
+                subtitle: const Text('Delete current bracket and all results'),
                 onTap: _showResetBracketDialog,
               ),
             ],
@@ -796,7 +804,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _teams.length >= 2 ? () => _showGenerateBracketDialog() : null,
+                    onPressed: _teams.length >= 2 ? _showGenerateBracketDialog : null,
                     icon: const Icon(Icons.auto_fix_high),
                     label: const Text('Generate Bracket'),
                   ),
@@ -946,6 +954,68 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
     );
   }
 
+  void _showGenerateNewBracketDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.auto_fix_high, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('Generate New Bracket'),
+          ],
+        ),
+        content: const Text(
+          'This will create a new bracket, but keep the existing results for reference. '
+          'You can choose a different tournament format or settings for the new bracket.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _generateNewBracket();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _generateNewBracket() {
+    // Show the generate bracket dialog to create a new bracket
+    showDialog(
+      context: context,
+      builder: (context) => GenerateBracketDialog(
+        tournamentId: widget.tournamentId,
+        teams: _teams,
+        resources: _resources,
+        onBracketGenerated: (bracket) {
+          setState(() {
+            _bracket = bracket;
+          });
+          _loadBracketData(); // Reload to get the created games
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('New bracket generated successfully!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _showResetBracketDialog() {
     showDialog(
       context: context,
@@ -1060,7 +1130,7 @@ class _TournamentBracketPageState extends State<TournamentBracketPage>
         return 'Swiss System';
       default:
         return format.replaceAll('_', ' ').split(' ').map((word) => 
-            word[0].toUpperCase() + word.substring(1)).join(' ');
+            word[0].toUpperCase() + word.substring(1),).join(' ');
     }
   }
 

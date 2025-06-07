@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/team_model.dart';
-import '../../../../core/models/tournament_resource_model.dart';
-import '../../../../core/models/tournament_bracket_model.dart';
-import '../../data/services/bracket_generator_service.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/tournament_bracket_model.dart';
+import 'package:teamapp3/features/tournaments/data/services/bracket_generator_service.dart';
 
 class GenerateBracketDialog extends StatefulWidget {
-  final String tournamentId;
-  final List<TeamModel> teams;
-  final List<TournamentResourceModel> resources;
-  final Function(TournamentBracketModel) onBracketGenerated;
 
   const GenerateBracketDialog({
     super.key,
@@ -17,6 +13,10 @@ class GenerateBracketDialog extends StatefulWidget {
     required this.resources,
     required this.onBracketGenerated,
   });
+  final String tournamentId;
+  final List<TeamModel> teams;
+  final List<TournamentResourceModel> resources;
+  final Function(TournamentBracketModel) onBracketGenerated;
 
   @override
   State<GenerateBracketDialog> createState() => _GenerateBracketDialogState();
@@ -415,7 +415,7 @@ class _GenerateBracketDialogState extends State<GenerateBracketDialog> {
             title: Text(resource.name),
             subtitle: Text(resource.description ?? 'No description'),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -568,7 +568,7 @@ class _GenerateBracketDialogState extends State<GenerateBracketDialog> {
   }
 
   int _calculateBracketSize(int teamCount) {
-    int size = 1;
+    var size = 1;
     while (size < teamCount) {
       size *= 2;
     }
@@ -576,7 +576,7 @@ class _GenerateBracketDialogState extends State<GenerateBracketDialog> {
   }
 
   int _calculateRounds(int bracketSize) {
-    int rounds = 0;
+    var rounds = 0;
     while (bracketSize > 1) {
       bracketSize ~/= 2;
       rounds++;

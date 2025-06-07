@@ -9,16 +9,16 @@ import 'package:teamapp3/features/profile/bloc/profile_state.dart';
 import 'package:teamapp3/features/profile/data/models/user_profile_model.dart';
 
 class ProfileHeader extends StatelessWidget {
-  final UserProfileModel profile;
 
   const ProfileHeader({
     super.key,
     required this.profile,
   });
+  final UserProfileModel profile;
 
   Future<void> _pickAndUploadImage(BuildContext context) async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 800,
       maxHeight: 800,
@@ -137,7 +137,7 @@ class ProfileHeader extends StatelessWidget {
                                   );
                                 },
                               )
-                            : Container(
+                            : ColoredBox(
                                 color: Theme.of(context).primaryColor.withOpacity(0.1),
                                 child: Icon(
                                   Icons.person,
@@ -243,15 +243,15 @@ class ProfileHeader extends StatelessWidget {
 }
 
 class _StatItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
 
   const _StatItem({
     required this.icon,
     required this.label,
     required this.value,
   });
+  final IconData icon;
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {

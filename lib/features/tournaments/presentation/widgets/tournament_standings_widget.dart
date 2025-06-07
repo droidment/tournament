@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/tournament_standings_model.dart';
-import '../../../tournaments/data/models/tournament_model.dart';
+import 'package:teamapp3/core/models/tournament_standings_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_model.dart';
 
 class TournamentStandingsWidget extends StatefulWidget {
-  final TournamentStandingsModel standings;
-  final TournamentFormat? format;
-  final bool showFullStats;
-  final VoidCallback? onRefresh;
 
   const TournamentStandingsWidget({
     super.key,
@@ -15,6 +11,10 @@ class TournamentStandingsWidget extends StatefulWidget {
     this.showFullStats = true,
     this.onRefresh,
   });
+  final TournamentStandingsModel standings;
+  final TournamentFormat? format;
+  final bool showFullStats;
+  final VoidCallback? onRefresh;
 
   @override
   State<TournamentStandingsWidget> createState() => _TournamentStandingsWidgetState();
@@ -32,7 +32,7 @@ class _TournamentStandingsWidgetState extends State<TournamentStandingsWidget>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
@@ -165,7 +165,7 @@ class _TournamentStandingsWidgetState extends State<TournamentStandingsWidget>
         columnSpacing: 16,
         headingRowHeight: 56,
         dataRowHeight: 56,
-        headingRowColor: MaterialStateProperty.all(
+        headingRowColor: WidgetStateProperty.all(
           Theme.of(context).colorScheme.surface,
         ),
         columns: _buildTableColumns(),
@@ -305,8 +305,8 @@ class _TournamentStandingsWidgetState extends State<TournamentStandingsWidget>
       final team = entry.value;
       
       return DataRow(
-        color: MaterialStateProperty.resolveWith<Color?>(
-          (Set<MaterialState> states) {
+        color: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) {
             if (index % 2 == 0) {
               return Theme.of(context).colorScheme.surface.withOpacity(0.5);
             }
@@ -525,6 +525,10 @@ class _TournamentStandingsWidgetState extends State<TournamentStandingsWidget>
         return Icons.account_tree;
       case 'swiss':
         return Icons.grid_view;
+      case 'pro_elimination':
+      case 'intermediate_elimination':
+      case 'novice_elimination':
+        return Icons.emoji_events;
       default:
         return Icons.emoji_events;
     }
@@ -540,6 +544,12 @@ class _TournamentStandingsWidgetState extends State<TournamentStandingsWidget>
         return 'Double Elimination Bracket';
       case 'swiss':
         return 'Swiss System Standings';
+      case 'pro_elimination':
+        return 'Pro Tier Bracket';
+      case 'intermediate_elimination':
+        return 'Intermediate Tier Bracket';
+      case 'novice_elimination':
+        return 'Novice Tier Bracket';
       default:
         return 'Tournament Standings';
     }

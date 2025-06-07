@@ -6,14 +6,14 @@ import 'package:teamapp3/core/services/supabase_service.dart';
 import 'package:teamapp3/core/constants/supabase_constants.dart';
 
 class AuthRepository {
-  final SupabaseService _supabaseService;
-  final GoogleSignIn _googleSignIn;
 
   AuthRepository({
     SupabaseService? supabaseService,
     GoogleSignIn? googleSignIn,
   })  : _supabaseService = supabaseService ?? SupabaseService.instance,
         _googleSignIn = googleSignIn ?? GoogleSignIn();
+  final SupabaseService _supabaseService;
+  final GoogleSignIn _googleSignIn;
 
   // Current user getters
   User? get currentUser => _supabaseService.currentUser;

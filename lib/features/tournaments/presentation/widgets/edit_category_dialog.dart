@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../data/models/category_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/category_model.dart';
 
 class EditCategoryDialog extends StatefulWidget {
-  final CategoryModel category;
-  final Function(Map<String, dynamic>) onCategoryUpdated;
 
   const EditCategoryDialog({
     super.key,
     required this.category,
     required this.onCategoryUpdated,
   });
+  final CategoryModel category;
+  final Function(Map<String, dynamic>) onCategoryUpdated;
 
   @override
   State<EditCategoryDialog> createState() => _EditCategoryDialogState();
@@ -199,7 +199,7 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
           widget.onCategoryUpdated(categoryData);
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${e.toString()}')),
+            SnackBar(content: Text('Error: ${e}')),
           );
           return;
         }
@@ -208,7 +208,7 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
       Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error: ${e.toString()}')),
+        SnackBar(content: Text('Unexpected error: ${e}')),
       );
     }
   }

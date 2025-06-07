@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../bloc/tournament_bloc.dart';
-import '../../bloc/tournament_event.dart';
-import '../../bloc/tournament_state.dart';
-import '../../data/models/tournament_model.dart';
+import 'package:teamapp3/features/tournaments/bloc/tournament_bloc.dart';
+import 'package:teamapp3/features/tournaments/bloc/tournament_event.dart';
+import 'package:teamapp3/features/tournaments/bloc/tournament_state.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_model.dart';
 
 class CreateTournamentPage extends StatefulWidget {
   const CreateTournamentPage({super.key});
@@ -26,7 +26,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   DateTime? _registrationDeadline;
-  bool _createTriggered = false;
+  final bool _createTriggered = false;
 
   @override
   void dispose() {
@@ -39,7 +39,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     super.dispose();
   }
 
-  void _selectStartDate() async {
+  Future<void> _selectStartDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _startDate ?? DateTime.now().add(const Duration(days: 7)),
@@ -59,7 +59,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     }
   }
 
-  void _selectEndDate() async {
+  Future<void> _selectEndDate() async {
     final initialDate = _endDate ?? 
         (_startDate?.add(const Duration(days: 1)) ?? 
          DateTime.now().add(const Duration(days: 8)));
@@ -79,7 +79,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
     }
   }
 
-  void _selectRegistrationDeadline() async {
+  Future<void> _selectRegistrationDeadline() async {
     final initialDate = _registrationDeadline ?? 
         (_startDate?.subtract(const Duration(days: 1)) ?? 
          DateTime.now().add(const Duration(days: 6)));
@@ -160,9 +160,159 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         return 'Double Elimination';
       case TournamentFormat.swiss:
         return 'Swiss System';
+      case TournamentFormat.tiered:
+        return 'Tiered Tournament';
       case TournamentFormat.custom:
         return 'Custom';
     }
+  }
+
+  void _showTieredTournamentDemo() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.8,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Tiered Tournament Format',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDemoSection(
+                        '🏟️ Overview',
+                        'A three-phase tournament format that ensures competitive balance and gives every team a chance to succeed.',
+                      ),
+                      _buildDemoSection(
+                        '📊 Phase 1: Group Stage',
+                        '• Teams distributed across groups using snake-draft seeding\n'
+                        '• Round-robin format within each group\n'
+                        '• Configurable scoring system (2-1-0 default)\n'
+                        '• Full tiebreaker system (points → head-to-head → point differential)',
+                      ),
+                      _buildDemoSection(
+                        '🎯 Phase 2: Tier Classification',
+                        '• Teams sorted into Pro, Intermediate, and Novice tiers\n'
+                        '• Based on group stage performance\n'
+                        '• Automatic elimination of lowest performers\n'
+                        '• Ensures competitive balance in playoffs',
+                      ),
+                      _buildDemoSection(
+                        '🏆 Phase 3: Tiered Playoffs',
+                        '• Separate single-elimination brackets for each tier\n'
+                        '• Pro Champion, Intermediate Champion, Novice Champion\n'
+                        '• Teams seeded by tier performance\n'
+                        '• Guaranteed competitive matches',
+                      ),
+                      _buildDemoSection(
+                        '⭐ Key Benefits',
+                        '• Every team gets significant playing time\n'
+                        '• Three different winners, not just one\n'
+                        '• Competitive balance at all skill levels\n'
+                        '• Scales efficiently from 8 to 32+ teams\n'
+                        '• Perfect for volleyball and pickleball',
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Example: 16 Teams',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade800,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              '• 4 groups of 4 teams each\n'
+                              '• Group stage: 3 games per team\n'
+                              '• Pro tier: 4 teams (1st place winners)\n'
+                              '• Intermediate tier: 8 teams (2nd & 3rd place)\n'
+                              '• Novice tier: 4 teams (4th place)\n'
+                              '• Total games per team: 4-6 games',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        setState(() {
+                          _selectedFormat = TournamentFormat.tiered;
+                        });
+                      },
+                      child: const Text('Use Tiered Format'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDemoSection(String title, String content) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            content,
+            style: const TextStyle(fontSize: 14, height: 1.4),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -172,7 +322,16 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         title: const Text('Create Tournament'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            // Try multiple navigation approaches for robustness
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              // Fallback: navigate to tournament management
+              context.go('/tournaments');
+            }
+          },
+          tooltip: 'Back to Tournament Management',
         ),
       ),
       body: BlocListener<TournamentBloc, TournamentState>(
@@ -195,7 +354,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
           }
         },
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Form(
             key: _formKey,
             child: Column(
@@ -230,25 +389,91 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<TournamentFormat>(
-                  value: _selectedFormat,
-                  decoration: const InputDecoration(
-                    labelText: 'Tournament Format',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: TournamentFormat.values.map((format) {
-                    return DropdownMenuItem(
-                      value: format,
-                      child: Text(_formatDisplayName(format)),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _selectedFormat = value;
-                      });
-                    }
-                  },
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<TournamentFormat>(
+                            value: _selectedFormat,
+                            decoration: const InputDecoration(
+                              labelText: 'Tournament Format',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: TournamentFormat.values.map((format) {
+                              return DropdownMenuItem(
+                                value: format,
+                                child: Text(_formatDisplayName(format)),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedFormat = value;
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        if (_selectedFormat == TournamentFormat.tiered) ...[
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: _showTieredTournamentDemo,
+                            icon: const Icon(Icons.help_outline),
+                            tooltip: 'Learn about Tiered Tournaments',
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.blue.shade50,
+                              foregroundColor: Colors.blue.shade700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (_selectedFormat == TournamentFormat.tiered) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.info_outline, 
+                                     color: Colors.blue.shade600, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Tiered Tournament Features',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade800,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '• Group stage with snake-draft seeding\n'
+                              '• Tier classification (Pro/Intermediate/Novice)\n'
+                              '• Separate elimination brackets for each tier\n'
+                              '• Three different champions',
+                              style: TextStyle(
+                                color: Colors.blue.shade700,
+                                fontSize: 12,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 16),
                 _buildDateSelector(
@@ -310,7 +535,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '• Set up categories (Men\'s/Women\'s, etc.)',
+                        "• Set up categories (Men's/Women's, etc.)",
                         style: TextStyle(color: Colors.blue.shade700, fontSize: 12),
                       ),
                       Text(
@@ -357,7 +582,7 @@ class _CreateTournamentPageState extends State<CreateTournamentPage> {
         ),
         child: Text(
           selectedDate != null
-              ? '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}'
+              ? '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'
               : 'Select $label',
           style: TextStyle(
             color: selectedDate != null ? null : Colors.grey,

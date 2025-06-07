@@ -1,27 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../bloc/team_bloc.dart';
-import '../../bloc/team_event.dart';
-import '../../bloc/team_state.dart';
-import '../../bloc/category_bloc.dart';
-import '../../bloc/category_event.dart';
-import '../../bloc/category_state.dart';
-import '../../data/models/category_model.dart';
-import '../../../../core/models/team_model.dart';
-import '../widgets/team_list_item.dart';
-import '../widgets/add_team_dialog.dart';
-import '../widgets/edit_team_dialog.dart';
+import 'package:teamapp3/features/tournaments/bloc/team_bloc.dart';
+import 'package:teamapp3/features/tournaments/bloc/team_event.dart';
+import 'package:teamapp3/features/tournaments/bloc/team_state.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_bloc.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_event.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_state.dart';
+import 'package:teamapp3/features/tournaments/data/models/category_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/team_list_item.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/add_team_dialog.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/edit_team_dialog.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/team_export_import_dialog.dart';
+import 'package:teamapp3/features/tournaments/data/services/team_import_export_service.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_model.dart';
 
 class TournamentTeamsPage extends StatefulWidget {
-  final String tournamentId;
-  final String tournamentName;
 
   const TournamentTeamsPage({
     super.key,
     required this.tournamentId,
     required this.tournamentName,
   });
+  final String tournamentId;
+  final String tournamentName;
 
   @override
   State<TournamentTeamsPage> createState() => _TournamentTeamsPageState();
@@ -29,6 +32,7 @@ class TournamentTeamsPage extends StatefulWidget {
 
 class _TournamentTeamsPageState extends State<TournamentTeamsPage> {
   String? _selectedCategoryId;
+  TournamentModel? _tournament;
   
   @override
   void initState() {
@@ -40,6 +44,21 @@ class _TournamentTeamsPageState extends State<TournamentTeamsPage> {
     context.read<CategoryBloc>().add(
           TournamentCategoriesLoadRequested(widget.tournamentId),
         );
+    _loadTournamentInfo();
+  }
+
+  Future<void> _loadTournamentInfo() async {
+    try {
+      // You'll need to add this method to your tournament repository
+      // For now, we'll assume the tournament format to determine behavior
+      setState(() {
+        // Default to null, will be set when we have proper repository access
+        _tournament = null;
+      });
+    } catch (e) {
+      // Handle error
+      print('Error loading tournament info: $e');
+    }
   }
 
   @override
@@ -52,6 +71,11 @@ class _TournamentTeamsPageState extends State<TournamentTeamsPage> {
           onPressed: () => context.go('/tournaments'),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.import_export),
+            onPressed: _showExportImportDialog,
+            tooltip: 'Export/Import Teams & Resources',
+          ),
           IconButton(
             icon: const Icon(Icons.help_outline),
             onPressed: _showHelpDialog,
@@ -159,13 +183,12 @@ class _TournamentTeamsPageState extends State<TournamentTeamsPage> {
                 ),
                 items: [
                   const DropdownMenuItem<String?>(
-                    value: null,
                     child: Text('All Categories'),
                   ),
                   ...state.categories.map((category) => DropdownMenuItem(
                         value: category.id,
                         child: Text(category.name),
-                      )),
+                      ),),
                 ],
                 onChanged: (value) {
                   setState(() {
@@ -370,4 +393,22 @@ class _TournamentTeamsPageState extends State<TournamentTeamsPage> {
       ),
     );
   }
+
+  void _showExportImportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => TeamExportImportDialog(
+        tournamentId: widget.tournamentId,
+        tournamentName: widget.tournamentName,
+        format: _tournament?.format.value ?? 'roundRobin', // Default format
+      ),
+    ).then((_) {
+      // Refresh teams list after dialog closes
+      context.read<TeamBloc>().add(
+        TournamentTeamsLoadRequested(widget.tournamentId),
+      );
+    });
+  }
+
+
 } 

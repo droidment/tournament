@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../bloc/category_bloc.dart';
-import '../../bloc/category_event.dart';
-import '../../bloc/category_state.dart';
-import '../../data/models/category_model.dart';
-import '../widgets/category_list_item.dart';
-import '../widgets/add_category_dialog.dart';
-import '../widgets/edit_category_dialog.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_bloc.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_event.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_state.dart';
+import 'package:teamapp3/features/tournaments/data/models/category_model.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/category_list_item.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/add_category_dialog.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/edit_category_dialog.dart';
 
 class TournamentCategoriesPage extends StatefulWidget {
-  final String tournamentId;
-  final String tournamentName;
 
   const TournamentCategoriesPage({
     super.key,
     required this.tournamentId,
     required this.tournamentName,
   });
+  final String tournamentId;
+  final String tournamentName;
 
   @override
   State<TournamentCategoriesPage> createState() => _TournamentCategoriesPageState();
@@ -90,7 +90,7 @@ class _TournamentCategoriesPageState extends State<TournamentCategoriesPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Organize teams into different categories (e.g., Men\'s/Women\'s, Competitive/Recreational)',
+                      "Organize teams into different categories (e.g., Men's/Women's, Competitive/Recreational)",
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Colors.grey[600],
                           ),
@@ -186,7 +186,7 @@ class _TournamentCategoriesPageState extends State<TournamentCategoriesPage> {
 
     // Update display order for affected categories
     final categoryOrders = <Map<String, dynamic>>[];
-    for (int i = 0; i < categories.length; i++) {
+    for (var i = 0; i < categories.length; i++) {
       categoryOrders.add({
         'id': categories[i].id,
         'displayOrder': i + 1,
@@ -300,7 +300,7 @@ class _TournamentCategoriesPageState extends State<TournamentCategoriesPage> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 12),
-              Text('• Men\'s / Women\'s / Mixed'),
+              Text("• Men's / Women's / Mixed"),
               Text('• Competitive / Recreational'),
               Text('• Junior / Senior / Open'),
               Text('• Division A / Division B'),

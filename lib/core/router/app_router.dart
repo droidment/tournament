@@ -10,6 +10,7 @@ import 'package:teamapp3/features/dashboard/presentation/pages/dashboard_page.da
 import 'package:teamapp3/features/profile/presentation/pages/profile_page.dart';
 import 'package:teamapp3/features/profile/presentation/pages/edit_profile_page.dart';
 import 'package:teamapp3/features/tournaments/presentation/pages/create_tournament_page.dart';
+import 'package:teamapp3/features/tournaments/presentation/pages/edit_tournament_page.dart';
 import 'package:teamapp3/features/tournaments/presentation/pages/tournament_categories_page.dart';
 import 'package:teamapp3/features/tournaments/presentation/pages/tournament_teams_page.dart';
 import 'package:teamapp3/features/tournaments/presentation/pages/tournament_management_page.dart';
@@ -62,9 +63,9 @@ class TournamentsPage extends StatelessWidget {
 }
 
 class TournamentDetailsPage extends StatelessWidget {
-  final String tournamentId;
   
   const TournamentDetailsPage({super.key, required this.tournamentId});
+  final String tournamentId;
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +100,62 @@ class TournamentDetailsPage extends StatelessWidget {
             const Text(
               'Coming Soon',
               style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class EditTournamentPlaceholderPage extends StatelessWidget {
+  final String tournamentId;
+  
+  const EditTournamentPlaceholderPage({
+    super.key,
+    required this.tournamentId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Edit Tournament'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.construction,
+              size: 64,
+              color: Colors.orange,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Edit Tournament',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tournament ID: $tournamentId',
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Tournament editing functionality is coming soon!',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => context.pop(),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Go Back'),
             ),
           ],
         ),
@@ -146,6 +203,16 @@ class AppRouter {
             create: (context) => TournamentBloc(),
             child: const CreateTournamentPage(),
           ),
+        ),
+        GoRoute(
+          path: '/tournaments/:id/edit',
+          builder: (context, state) {
+            final tournamentId = state.pathParameters['id']!;
+            return BlocProvider(
+              create: (context) => TournamentBloc(),
+              child: EditTournamentPage(tournamentId: tournamentId),
+            );
+          },
         ),
         GoRoute(
           path: '/tournaments/:id/categories',

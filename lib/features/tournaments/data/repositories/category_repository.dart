@@ -1,11 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/category_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/category_model.dart';
 
 class CategoryRepository {
-  final SupabaseClient _supabaseClient;
 
   CategoryRepository({SupabaseClient? supabaseClient})
       : _supabaseClient = supabaseClient ?? Supabase.instance.client;
+  final SupabaseClient _supabaseClient;
 
   Future<CategoryModel> createCategory({
     required String tournamentId,
@@ -30,7 +30,7 @@ class CategoryRepository {
     };
 
     final data = await _supabaseClient.from('tournament_categories').insert(insertData).select().single();
-    return CategoryModel.fromJson(data as Map<String, dynamic>);
+    return CategoryModel.fromJson(data);
   }
 
   Future<List<CategoryModel>> getTournamentCategories(String tournamentId) async {
@@ -41,7 +41,7 @@ class CategoryRepository {
         .eq('is_active', true)
         .order('display_order', ascending: true);
 
-    return data.map((json) => CategoryModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => CategoryModel.fromJson(json)).toList();
   }
 
   Future<CategoryModel?> getCategory(String categoryId) async {
@@ -52,7 +52,7 @@ class CategoryRepository {
         .maybeSingle();
 
     if (data == null) return null;
-    return CategoryModel.fromJson(data as Map<String, dynamic>);
+    return CategoryModel.fromJson(data);
   }
 
   Future<CategoryModel> updateCategory({
@@ -80,7 +80,7 @@ class CategoryRepository {
         .select()
         .single();
 
-    return CategoryModel.fromJson(data as Map<String, dynamic>);
+    return CategoryModel.fromJson(data);
   }
 
   Future<void> deleteCategory(String categoryId) async {
@@ -114,6 +114,6 @@ class CategoryRepository {
         .insert(defaultCategories)
         .select();
 
-    return data.map((json) => CategoryModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => CategoryModel.fromJson(json)).toList();
   }
 } 

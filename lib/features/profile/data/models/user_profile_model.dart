@@ -4,6 +4,25 @@ part 'user_profile_model.g.dart';
 
 @JsonSerializable()
 class UserProfileModel {
+
+  const UserProfileModel({
+    required this.id,
+    required this.email,
+    this.fullName,
+    this.avatarUrl,
+    this.bio,
+    this.phone,
+    this.location,
+    this.dateOfBirth,
+    required this.createdAt,
+    required this.updatedAt,
+    this.tournamentRoles = const [],
+    this.tournamentsCreated = 0,
+    this.tournamentsJoined = 0,
+  });
+
+  factory UserProfileModel.fromJson(Map<String, dynamic> json) =>
+      _$UserProfileModelFromJson(json);
   final String id;
   final String email;
   @JsonKey(name: 'full_name')
@@ -27,25 +46,6 @@ class UserProfileModel {
   final int tournamentsCreated;
   @JsonKey(name: 'tournaments_joined')
   final int tournamentsJoined;
-
-  const UserProfileModel({
-    required this.id,
-    required this.email,
-    this.fullName,
-    this.avatarUrl,
-    this.bio,
-    this.phone,
-    this.location,
-    this.dateOfBirth,
-    required this.createdAt,
-    required this.updatedAt,
-    this.tournamentRoles = const [],
-    this.tournamentsCreated = 0,
-    this.tournamentsJoined = 0,
-  });
-
-  factory UserProfileModel.fromJson(Map<String, dynamic> json) =>
-      _$UserProfileModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$UserProfileModelToJson(this);
 
@@ -112,13 +112,6 @@ class UserProfileModel {
 
 @JsonSerializable()
 class TournamentRole {
-  @JsonKey(name: 'tournament_id')
-  final String tournamentId;
-  @JsonKey(name: 'tournament_name')
-  final String tournamentName;
-  final UserRole role;
-  @JsonKey(name: 'joined_at')
-  final DateTime joinedAt;
 
   const TournamentRole({
     required this.tournamentId,
@@ -129,6 +122,13 @@ class TournamentRole {
 
   factory TournamentRole.fromJson(Map<String, dynamic> json) =>
       _$TournamentRoleFromJson(json);
+  @JsonKey(name: 'tournament_id')
+  final String tournamentId;
+  @JsonKey(name: 'tournament_name')
+  final String tournamentName;
+  final UserRole role;
+  @JsonKey(name: 'joined_at')
+  final DateTime joinedAt;
 
   Map<String, dynamic> toJson() => _$TournamentRoleToJson(this);
 }

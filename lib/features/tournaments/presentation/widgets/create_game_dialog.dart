@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/game_model.dart';
-import '../../../../core/models/team_model.dart';
-import '../../../../core/models/tournament_resource_model.dart';
-import '../../data/models/category_model.dart';
-import '../../data/repositories/game_repository.dart';
-import '../../data/repositories/team_repository.dart';
-import '../../data/repositories/tournament_resource_repository.dart';
-import '../../data/repositories/category_repository.dart';
+import 'package:teamapp3/core/models/game_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/category_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/game_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/team_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/tournament_resource_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/category_repository.dart';
 
 class CreateGameDialog extends StatefulWidget {
-  final String tournamentId;
-  final Function(GameModel) onGameCreated;
 
   const CreateGameDialog({
     super.key,
     required this.tournamentId,
     required this.onGameCreated,
   });
+  final String tournamentId;
+  final Function(GameModel) onGameCreated;
 
   @override
   State<CreateGameDialog> createState() => _CreateGameDialogState();
@@ -198,13 +198,12 @@ class _CreateGameDialogState extends State<CreateGameDialog>
             ),
             items: [
               const DropdownMenuItem<CategoryModel>(
-                value: null,
                 child: Text('No Category'),
               ),
               ..._categories.map((category) => DropdownMenuItem(
                 value: category,
                 child: Text(category.name),
-              )),
+              ),),
             ],
             onChanged: (value) {
               setState(() {
@@ -387,13 +386,12 @@ class _CreateGameDialogState extends State<CreateGameDialog>
               ),
               items: [
                 const DropdownMenuItem<TeamModel>(
-                  value: null,
                   child: Text('No Team Selected'),
                 ),
                 ..._teams.map((team) => DropdownMenuItem(
                   value: team,
                   child: Text(team.name),
-                )),
+                ),),
               ],
               onChanged: (value) {
                 setState(() {
@@ -422,13 +420,12 @@ class _CreateGameDialogState extends State<CreateGameDialog>
               ),
               items: [
                 const DropdownMenuItem<TeamModel>(
-                  value: null,
                   child: Text('No Team Selected'),
                 ),
                 ..._teams.where((team) => team != _selectedTeam1).map((team) => DropdownMenuItem(
                   value: team,
                   child: Text(team.name),
-                )),
+                ),),
               ],
               onChanged: (value) {
                 setState(() {
@@ -577,7 +574,6 @@ class _CreateGameDialogState extends State<CreateGameDialog>
             ),
             items: [
               const DropdownMenuItem<TournamentResourceModel>(
-                value: null,
                 child: Text('No Resource'),
               ),
               ..._resources.map((resource) => DropdownMenuItem(
@@ -592,7 +588,7 @@ class _CreateGameDialogState extends State<CreateGameDialog>
                     ),
                   ],
                 ),
-              )),
+              ),),
             ],
             onChanged: (value) {
               setState(() {

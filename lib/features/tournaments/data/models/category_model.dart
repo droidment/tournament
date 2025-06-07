@@ -5,6 +5,22 @@ part 'category_model.g.dart';
 
 @JsonSerializable()
 class CategoryModel extends Equatable {
+
+  const CategoryModel({
+    required this.id,
+    required this.tournamentId,
+    required this.name,
+    this.description,
+    this.maxTeams,
+    this.minTeams = 2,
+    this.isActive = true,
+    this.displayOrder = 0,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory CategoryModel.fromJson(Map<String, dynamic> json) =>
+      _$CategoryModelFromJson(json);
   final String id;
   @JsonKey(name: 'tournament_id')
   final String tournamentId;
@@ -22,22 +38,6 @@ class CategoryModel extends Equatable {
   final DateTime createdAt;
   @JsonKey(name: 'updated_at')
   final DateTime updatedAt;
-
-  const CategoryModel({
-    required this.id,
-    required this.tournamentId,
-    required this.name,
-    this.description,
-    this.maxTeams,
-    this.minTeams = 2,
-    this.isActive = true,
-    this.displayOrder = 0,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory CategoryModel.fromJson(Map<String, dynamic> json) =>
-      _$CategoryModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$CategoryModelToJson(this);
 

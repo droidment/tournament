@@ -5,10 +5,10 @@ import 'package:teamapp3/features/authentication/bloc/auth_bloc.dart';
 import 'package:teamapp3/features/profile/bloc/profile_bloc.dart';
 import 'package:teamapp3/features/profile/bloc/profile_event.dart';
 import 'package:teamapp3/features/profile/bloc/profile_state.dart';
+import 'package:teamapp3/features/profile/presentation/widgets/my_tournaments_section.dart';
 import 'package:teamapp3/features/profile/presentation/widgets/profile_header.dart';
 import 'package:teamapp3/features/profile/presentation/widgets/profile_info_section.dart';
 import 'package:teamapp3/features/profile/presentation/widgets/tournament_roles_section.dart';
-import 'package:teamapp3/features/profile/presentation/widgets/my_tournaments_section.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});

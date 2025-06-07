@@ -8,6 +8,7 @@ enum TournamentFormat {
   singleElimination('singleElimination'),
   doubleElimination('doubleElimination'),
   swiss('swiss'),
+  tiered('tiered'),
   custom('custom');
 
   const TournamentFormat(this.value);
@@ -41,6 +42,22 @@ enum TournamentStatus {
 
 @JsonSerializable()
 class TournamentModel extends Equatable {
+
+  const TournamentModel({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.formatValue,
+    required this.statusValue,
+    required this.startDate,
+    required this.endDate,
+    required this.organizerId,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory TournamentModel.fromJson(Map<String, dynamic> json) =>
+      _$TournamentModelFromJson(json);
   final String id;
   final String name;
   final String description;
@@ -59,28 +76,12 @@ class TournamentModel extends Equatable {
   @JsonKey(name: 'updated_at')
   final DateTime updatedAt;
 
-  const TournamentModel({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.formatValue,
-    required this.statusValue,
-    required this.startDate,
-    required this.endDate,
-    required this.organizerId,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
   // Convenience getters for enums
   TournamentFormat get format => TournamentFormat.fromString(formatValue);
   TournamentStatus get status => TournamentStatus.fromString(statusValue);
   
   // Backward compatibility getter
   String get createdBy => organizerId;
-
-  factory TournamentModel.fromJson(Map<String, dynamic> json) =>
-      _$TournamentModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$TournamentModelToJson(this);
 

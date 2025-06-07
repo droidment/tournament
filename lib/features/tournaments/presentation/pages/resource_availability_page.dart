@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/models/tournament_resource_model.dart';
-import '../../../../core/models/resource_availability_model.dart';
-import '../../data/repositories/resource_availability_repository.dart';
-import '../widgets/add_availability_dialog.dart';
-import '../widgets/edit_availability_dialog.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/resource_availability_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/resource_availability_repository.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/add_availability_dialog.dart';
+import 'package:teamapp3/features/tournaments/presentation/widgets/edit_availability_dialog.dart';
 
 class ResourceAvailabilityPage extends StatefulWidget {
-  final TournamentResourceModel resource;
-  final String tournamentName;
 
   const ResourceAvailabilityPage({
     super.key,
     required this.resource,
     required this.tournamentName,
   });
+  final TournamentResourceModel resource;
+  final String tournamentName;
 
   @override
   State<ResourceAvailabilityPage> createState() => _ResourceAvailabilityPageState();
@@ -227,7 +227,7 @@ class _ResourceAvailabilityPageState extends State<ResourceAvailabilityPage>
               ? 'No availability' 
               : '${availability.length} time slot${availability.length > 1 ? 's' : ''}',
         ),
-        children: availability.map((avail) => _buildAvailabilityListItem(avail)).toList(),
+        children: availability.map(_buildAvailabilityListItem).toList(),
       ),
     );
   }

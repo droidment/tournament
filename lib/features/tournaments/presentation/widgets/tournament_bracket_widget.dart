@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/tournament_bracket_model.dart';
-import '../../../../core/models/team_model.dart';
+import 'package:teamapp3/core/models/tournament_bracket_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
 
 class TournamentBracketWidget extends StatefulWidget {
-  final TournamentBracketModel bracket;
-  final Map<String, TeamModel> teamMap;
-  final Function(BracketMatchModel)? onMatchTap;
-  final bool showScores;
-  final bool isInteractive;
 
   const TournamentBracketWidget({
     super.key,
@@ -17,6 +12,11 @@ class TournamentBracketWidget extends StatefulWidget {
     this.showScores = true,
     this.isInteractive = true,
   });
+  final TournamentBracketModel bracket;
+  final Map<String, TeamModel> teamMap;
+  final Function(BracketMatchModel)? onMatchTap;
+  final bool showScores;
+  final bool isInteractive;
 
   @override
   State<TournamentBracketWidget> createState() => _TournamentBracketWidgetState();
@@ -70,7 +70,7 @@ class _TournamentBracketWidgetState extends State<TournamentBracketWidget> {
       ),
       child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.account_tree,
             color: Colors.white,
             size: 24,
@@ -380,7 +380,7 @@ class _TournamentBracketWidgetState extends State<TournamentBracketWidget> {
         child: Row(
           children: [
             if (isWinner)
-              Icon(
+              const Icon(
                 Icons.emoji_events,
                 size: 16,
                 color: Colors.amber,
@@ -413,7 +413,7 @@ class _TournamentBracketWidgetState extends State<TournamentBracketWidget> {
   }
 
   Widget _buildConnectorLines(BracketRoundModel currentRound, BracketRoundModel nextRound) {
-    return Container(
+    return SizedBox(
       width: 40,
       height: _calculateRoundHeight(currentRound),
       child: CustomPaint(
@@ -477,15 +477,15 @@ class _TournamentBracketWidgetState extends State<TournamentBracketWidget> {
   }
 
   double pow(num base, num exponent) {
-    return 1.0; // Simplified for now
+    return 1; // Simplified for now
   }
 }
 
 class BracketConnectorPainter extends CustomPainter {
-  final int currentRoundMatches;
-  final int nextRoundMatches;
 
   BracketConnectorPainter(this.currentRoundMatches, this.nextRoundMatches);
+  final int currentRoundMatches;
+  final int nextRoundMatches;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -498,7 +498,7 @@ class BracketConnectorPainter extends CustomPainter {
     const matchSpacing = 16.0;
 
     // Draw connecting lines between matches
-    for (int i = 0; i < nextRoundMatches; i++) {
+    for (var i = 0; i < nextRoundMatches; i++) {
       final parentMatch1 = i * 2;
       final parentMatch2 = (i * 2) + 1;
 

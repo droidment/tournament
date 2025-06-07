@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AddCategoryDialog extends StatefulWidget {
-  final String tournamentId;
-  final Function(Map<String, dynamic>) onCategoryAdded;
 
   const AddCategoryDialog({
     super.key,
     required this.tournamentId,
     required this.onCategoryAdded,
   });
+  final String tournamentId;
+  final Function(Map<String, dynamic>) onCategoryAdded;
 
   @override
   State<AddCategoryDialog> createState() => _AddCategoryDialogState();
@@ -44,7 +44,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'Category Name *',
-                  hintText: 'e.g., Men\'s, Women\'s, Mixed',
+                  hintText: "e.g., Men's, Women's, Mixed",
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
@@ -197,7 +197,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
         widget.onCategoryAdded(categoryData);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(content: Text('Error: ${e}')),
         );
         return;
       }
@@ -205,7 +205,7 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
       Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unexpected error: ${e.toString()}')),
+        SnackBar(content: Text('Unexpected error: ${e}')),
       );
     }
   }

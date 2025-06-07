@@ -3,12 +3,12 @@ import 'package:intl/intl.dart';
 import 'package:teamapp3/features/profile/data/models/user_profile_model.dart';
 
 class TournamentRolesSection extends StatelessWidget {
-  final UserProfileModel profile;
 
   const TournamentRolesSection({
     super.key,
     required this.profile,
   });
+  final UserProfileModel profile;
 
   @override
   Widget build(BuildContext context) {
@@ -135,17 +135,13 @@ class TournamentRolesSection extends StatelessWidget {
         ...profile.tournamentRoles.map((role) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _TournamentRoleCard(role: role),
-            )),
+            ),),
       ],
     );
   }
 }
 
 class _RoleSummaryCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final int count;
-  final Color color;
 
   const _RoleSummaryCard({
     required this.icon,
@@ -153,6 +149,10 @@ class _RoleSummaryCard extends StatelessWidget {
     required this.count,
     required this.color,
   });
+  final IconData icon;
+  final String label;
+  final int count;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -201,11 +201,11 @@ class _RoleSummaryCard extends StatelessWidget {
 }
 
 class _TournamentRoleCard extends StatelessWidget {
-  final TournamentRole role;
 
   const _TournamentRoleCard({
     required this.role,
   });
+  final TournamentRole role;
 
   Color _getRoleColor() {
     switch (role.role) {
@@ -243,7 +243,6 @@ class _TournamentRoleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(
           color: roleColor.withOpacity(0.3),
-          width: 1,
         ),
       ),
       child: ListTile(
@@ -279,7 +278,6 @@ class _TournamentRoleCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: roleColor.withOpacity(0.3),
-                      width: 1,
                     ),
                   ),
                   child: Text(

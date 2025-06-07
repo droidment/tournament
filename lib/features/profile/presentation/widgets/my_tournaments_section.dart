@@ -3,14 +3,14 @@ import 'package:intl/intl.dart';
 import 'package:teamapp3/features/profile/data/models/user_profile_model.dart';
 
 class MyTournamentsSection extends StatelessWidget {
-  final List<Map<String, dynamic>> tournaments;
-  final UserProfileModel profile;
 
   const MyTournamentsSection({
     super.key,
     required this.tournaments,
     required this.profile,
   });
+  final List<Map<String, dynamic>> tournaments;
+  final UserProfileModel profile;
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +138,7 @@ class MyTournamentsSection extends StatelessWidget {
 
         // Active tournaments (if any)
         if (activeTournaments.isNotEmpty) ...[
-          _SectionHeader(
+          const _SectionHeader(
             title: 'Active Tournaments',
             icon: Icons.play_arrow,
             color: Colors.green,
@@ -147,13 +147,13 @@ class MyTournamentsSection extends StatelessWidget {
           ...activeTournaments.map((tournament) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _TournamentCard(tournament: tournament),
-              )),
+              ),),
           const SizedBox(height: 24),
         ],
 
         // Upcoming tournaments (if any)
         if (upcomingTournaments.isNotEmpty) ...[
-          _SectionHeader(
+          const _SectionHeader(
             title: 'Upcoming Tournaments',
             icon: Icons.schedule,
             color: Colors.blue,
@@ -162,13 +162,13 @@ class MyTournamentsSection extends StatelessWidget {
           ...upcomingTournaments.map((tournament) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _TournamentCard(tournament: tournament),
-              )),
+              ),),
           const SizedBox(height: 24),
         ],
 
         // Completed tournaments (if any)
         if (completedTournaments.isNotEmpty) ...[
-          _SectionHeader(
+          const _SectionHeader(
             title: 'Completed Tournaments',
             icon: Icons.check_circle,
             color: Colors.grey,
@@ -177,7 +177,7 @@ class MyTournamentsSection extends StatelessWidget {
           ...completedTournaments.take(5).map((tournament) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _TournamentCard(tournament: tournament),
-              )),
+              ),),
           if (completedTournaments.length > 5)
             TextButton(
               onPressed: () {
@@ -208,10 +208,6 @@ class MyTournamentsSection extends StatelessWidget {
 enum TournamentDisplayStatus { upcoming, active, completed }
 
 class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final int count;
-  final Color color;
 
   const _StatCard({
     required this.icon,
@@ -219,6 +215,10 @@ class _StatCard extends StatelessWidget {
     required this.count,
     required this.color,
   });
+  final IconData icon;
+  final String label;
+  final int count;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -259,15 +259,15 @@ class _StatCard extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color color;
 
   const _SectionHeader({
     required this.title,
     required this.icon,
     required this.color,
   });
+  final String title;
+  final IconData icon;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -292,11 +292,11 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _TournamentCard extends StatelessWidget {
-  final Map<String, dynamic> tournament;
 
   const _TournamentCard({
     required this.tournament,
   });
+  final Map<String, dynamic> tournament;
 
   Color _getStatusColor() {
     final now = DateTime.now();

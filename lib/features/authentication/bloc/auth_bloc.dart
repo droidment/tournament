@@ -10,8 +10,6 @@ part 'auth_event.dart';
 part 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  final AuthRepository _authRepository;
-  late StreamSubscription<supabase.AuthState> _authStateSubscription;
 
   AuthBloc({required AuthRepository authRepository})
       : _authRepository = authRepository,
@@ -30,8 +28,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (supabaseAuthState) => add(_AuthStateChanged(supabaseAuthState)),
     );
   }
+  final AuthRepository _authRepository;
+  late StreamSubscription<supabase.AuthState> _authStateSubscription;
 
-  void _onAuthStateChanged(
+  Future<void> _onAuthStateChanged(
     _AuthStateChanged event,
     Emitter<AuthState> emit,
   ) async {
@@ -41,24 +41,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthState.authenticated(
           user: event.supabaseAuthState.session!.user,
           userProfile: userProfile,
-        ));
-        break;
+        ),);
       case supabase.AuthChangeEvent.signedOut:
         emit(const AuthState.unauthenticated());
-        break;
       case supabase.AuthChangeEvent.userUpdated:
         final userProfile = await _authRepository.getCurrentUserProfile();
         emit(AuthState.authenticated(
           user: event.supabaseAuthState.session!.user,
           userProfile: userProfile,
-        ));
-        break;
+        ),);
       default:
         break;
     }
   }
 
-  void _onSignUpRequested(
+  Future<void> _onSignUpRequested(
     AuthSignUpRequested event,
     Emitter<AuthState> emit,
   ) async {
@@ -75,7 +72,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  void _onSignInRequested(
+  Future<void> _onSignInRequested(
     AuthSignInRequested event,
     Emitter<AuthState> emit,
   ) async {
@@ -91,7 +88,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  void _onGoogleSignInRequested(
+  Future<void> _onGoogleSignInRequested(
     AuthGoogleSignInRequested event,
     Emitter<AuthState> emit,
   ) async {
@@ -104,7 +101,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  void _onSignOutRequested(
+  Future<void> _onSignOutRequested(
     AuthSignOutRequested event,
     Emitter<AuthState> emit,
   ) async {
@@ -116,7 +113,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  void _onPasswordResetRequested(
+  Future<void> _onPasswordResetRequested(
     AuthPasswordResetRequested event,
     Emitter<AuthState> emit,
   ) async {
@@ -129,7 +126,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  void _onProfileUpdateRequested(
+  Future<void> _onProfileUpdateRequested(
     AuthProfileUpdateRequested event,
     Emitter<AuthState> emit,
   ) async {
@@ -138,7 +135,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading(
       user: state.user,
       userProfile: state.userProfile,
-    ));
+    ),);
 
     try {
       final updatedProfile = await _authRepository.updateUserProfile(
@@ -151,17 +148,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthState.authenticated(
         user: state.user!,
         userProfile: updatedProfile,
-      ));
+      ),);
     } catch (error) {
       emit(AuthState.error(
         error.toString(),
         user: state.user,
         userProfile: state.userProfile,
-      ));
+      ),);
     }
   }
 
-  void _onAvatarUploadRequested(
+  Future<void> _onAvatarUploadRequested(
     AuthAvatarUploadRequested event,
     Emitter<AuthState> emit,
   ) async {
@@ -170,7 +167,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthState.loading(
       user: state.user,
       userProfile: state.userProfile,
-    ));
+    ),);
 
     try {
       await _authRepository.uploadAvatar(
@@ -184,13 +181,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthState.authenticated(
         user: state.user!,
         userProfile: updatedProfile,
-      ));
+      ),);
     } catch (error) {
       emit(AuthState.error(
         error.toString(),
         user: state.user,
         userProfile: state.userProfile,
-      ));
+      ),);
     }
   }
 

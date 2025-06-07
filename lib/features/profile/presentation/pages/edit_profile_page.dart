@@ -56,8 +56,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  void _selectDateOfBirth(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+  Future<void> _selectDateOfBirth(BuildContext context) async {
+    final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDateOfBirth ?? DateTime.now().subtract(const Duration(days: 365 * 25)),
       firstDate: DateTime(1900),
@@ -147,7 +147,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           _initializeFields(state);
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24),
             child: Form(
               key: _formKey,
               child: Column(
@@ -319,7 +319,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'All fields are optional. Fill out what you\'d like to share with other tournament participants.',
+                            "All fields are optional. Fill out what you'd like to share with other tournament participants.",
                             style: TextStyle(
                               color: Colors.blue[800],
                               fontSize: 14,

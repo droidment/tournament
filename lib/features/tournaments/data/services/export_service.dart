@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
-import '../../../../core/models/game_model.dart';
-import '../../../../core/models/team_model.dart';
-import '../../../../core/models/tournament_resource_model.dart';
-import '../../../../core/models/tournament_standings_model.dart';
+import 'package:teamapp3/core/models/game_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/tournament_standings_model.dart';
 
 enum ExportFormat { csv, json, txt, html }
 
@@ -26,22 +26,18 @@ class ExportService {
         content = _generateScheduleCSV(games, teamMap, resourceMap);
         filename = '${tournamentName}_schedule.csv';
         mimeType = 'text/csv';
-        break;
       case ExportFormat.json:
         content = _generateScheduleJSON(tournamentName, games, teamMap, resourceMap);
         filename = '${tournamentName}_schedule.json';
         mimeType = 'application/json';
-        break;
       case ExportFormat.txt:
         content = _generateScheduleTXT(tournamentName, games, teamMap, resourceMap);
         filename = '${tournamentName}_schedule.txt';
         mimeType = 'text/plain';
-        break;
       case ExportFormat.html:
         content = _generateScheduleHTML(tournamentName, games, teamMap, resourceMap);
         filename = '${tournamentName}_schedule.html';
         mimeType = 'text/html';
-        break;
     }
 
     await _downloadFile(content, filename, mimeType);
@@ -62,22 +58,18 @@ class ExportService {
         content = _generateStandingsCSV(standings);
         filename = '${tournamentName}_standings.csv';
         mimeType = 'text/csv';
-        break;
       case ExportFormat.json:
         content = _generateStandingsJSON(tournamentName, standings);
         filename = '${tournamentName}_standings.json';
         mimeType = 'application/json';
-        break;
       case ExportFormat.txt:
         content = _generateStandingsTXT(tournamentName, standings);
         filename = '${tournamentName}_standings.txt';
         mimeType = 'text/plain';
-        break;
       case ExportFormat.html:
         content = _generateStandingsHTML(tournamentName, standings);
         filename = '${tournamentName}_standings.html';
         mimeType = 'text/html';
-        break;
     }
 
     await _downloadFile(content, filename, mimeType);
@@ -101,12 +93,10 @@ class ExportService {
         content = _generateCompleteJSON(tournamentName, games, teamMap, resourceMap, standings);
         filename = '${tournamentName}_complete.json';
         mimeType = 'application/json';
-        break;
       case ExportFormat.html:
         content = _generateCompleteHTML(tournamentName, games, teamMap, resourceMap, standings);
         filename = '${tournamentName}_complete.html';
         mimeType = 'text/html';
-        break;
       default:
         throw ArgumentError('Complete export only supports JSON and HTML formats');
     }
@@ -173,7 +163,7 @@ class ExportService {
           'team2': game.team2Score,
         },
         'winner': game.winnerId != null ? teamMap[game.winnerId!]?.name : null,
-      }).toList(),
+      },).toList(),
     };
 
     return const JsonEncoder.withIndent('  ').convert(exportData);
@@ -189,7 +179,7 @@ class ExportService {
     buffer.writeln('=' * 60);
     buffer.writeln('${tournamentName.toUpperCase()} - TOURNAMENT SCHEDULE');
     buffer.writeln('=' * 60);
-    buffer.writeln('Generated: ${DateTime.now().toString()}');
+    buffer.writeln('Generated: ${DateTime.now()}');
     buffer.writeln('Total Games: ${games.length}');
     buffer.writeln('=' * 60);
     buffer.writeln();
@@ -266,7 +256,7 @@ class ExportService {
     buffer.writeln('  <div class="header">');
     buffer.writeln('    <h1>$tournamentName</h1>');
     buffer.writeln('    <h2>Tournament Schedule</h2>');
-    buffer.writeln('    <p>Generated: ${DateTime.now().toString()}</p>');
+    buffer.writeln('    <p>Generated: ${DateTime.now()}</p>');
     buffer.writeln('    <p>Total Games: ${games.length}</p>');
     buffer.writeln('  </div>');
 
@@ -344,7 +334,7 @@ class ExportService {
         'pointsAgainst': team.pointsAgainst,
         'pointsDifference': team.pointsDifference,
         'winPercentage': team.winPercentage,
-      }).toList(),
+      },).toList(),
     };
 
     return const JsonEncoder.withIndent('  ').convert(exportData);
@@ -355,7 +345,7 @@ class ExportService {
     buffer.writeln('=' * 80);
     buffer.writeln('${tournamentName.toUpperCase()} - TOURNAMENT STANDINGS');
     buffer.writeln('=' * 80);
-    buffer.writeln('Generated: ${DateTime.now().toString()}');
+    buffer.writeln('Generated: ${DateTime.now()}');
     buffer.writeln('Format: ${standings.format}');
     buffer.writeln('Total Teams: ${standings.teamStandings.length}');
     buffer.writeln('=' * 80);
@@ -414,7 +404,7 @@ class ExportService {
     buffer.writeln('  <div class="header">');
     buffer.writeln('    <h1>$tournamentName</h1>');
     buffer.writeln('    <h2>🏆 Tournament Standings</h2>');
-    buffer.writeln('    <p>Generated: ${DateTime.now().toString()}</p>');
+    buffer.writeln('    <p>Generated: ${DateTime.now()}</p>');
     buffer.writeln('    <p>Format: ${standings.format} | Total Teams: ${standings.teamStandings.length}</p>');
     buffer.writeln('  </div>');
 
@@ -483,13 +473,13 @@ class ExportService {
         'categoryId': team.categoryId,
         'seed': team.seed,
         'isActive': team.isActive,
-      }).toList(),
+      },).toList(),
       'resources': resourceMap.values.map((resource) => {
         'id': resource.id,
         'name': resource.name,
         'type': resource.type,
         'capacity': resource.capacity,
-      }).toList(),
+      },).toList(),
       'standings': {
         'format': standings.format,
         'teams': standings.teamStandings.map((team) => {
@@ -505,7 +495,7 @@ class ExportService {
           'pointsAgainst': team.pointsAgainst,
           'pointsDifference': team.pointsDifference,
           'winPercentage': team.winPercentage,
-        }).toList(),
+        },).toList(),
       },
       'schedule': games.map((game) => {
         'id': game.id,
@@ -529,7 +519,7 @@ class ExportService {
           'team2': game.team2Score,
         },
         'winner': game.winnerId != null ? teamMap[game.winnerId!]?.name : null,
-      }).toList(),
+      },).toList(),
     };
 
     return const JsonEncoder.withIndent('  ').convert(exportData);
@@ -573,7 +563,7 @@ class ExportService {
     buffer.writeln('    <div class="header">');
     buffer.writeln('      <h1>🏆 $tournamentName</h1>');
     buffer.writeln('      <h2>Complete Tournament Report</h2>');
-    buffer.writeln('      <p>Generated: ${DateTime.now().toString()}</p>');
+    buffer.writeln('      <p>Generated: ${DateTime.now()}</p>');
     buffer.writeln('    </div>');
 
     // Statistics overview

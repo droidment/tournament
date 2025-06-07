@@ -1,12 +1,12 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/models/team_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
 
 class TeamRepository {
-  final SupabaseClient _supabaseClient;
 
   TeamRepository({SupabaseClient? supabaseClient})
       : _supabaseClient = supabaseClient ?? Supabase.instance.client;
+  final SupabaseClient _supabaseClient;
 
   Future<TeamModel> createTeam({
     required String tournamentId,
@@ -38,7 +38,7 @@ class TeamRepository {
     };
 
     final data = await _supabaseClient.from('teams').insert(insertData).select().single();
-    return TeamModel.fromJson(data as Map<String, dynamic>);
+    return TeamModel.fromJson(data);
   }
 
   Future<List<TeamModel>> getTournamentTeams(String tournamentId) async {
@@ -49,7 +49,22 @@ class TeamRepository {
         .eq('is_active', true)
         .order('name', ascending: true);
 
-    return data.map((json) => TeamModel.fromJson(json as Map<String, dynamic>)).toList();
+    final teams = data.map((json) => TeamModel.fromJson(json)).toList();
+    
+    // Sort in memory to handle seed ordering with nulls last
+    teams.sort((a, b) {
+      if (a.seed != null && b.seed != null) {
+        return a.seed!.compareTo(b.seed!);
+      } else if (a.seed != null) {
+        return -1; // a comes first
+      } else if (b.seed != null) {
+        return 1; // b comes first
+      } else {
+        return a.name.compareTo(b.name); // Both have no seed, sort by name
+      }
+    });
+    
+    return teams;
   }
 
   Future<List<TeamModel>> getCategoryTeams(String categoryId) async {
@@ -60,7 +75,7 @@ class TeamRepository {
         .eq('is_active', true)
         .order('name', ascending: true);
 
-    return data.map((json) => TeamModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => TeamModel.fromJson(json)).toList();
   }
 
   Future<TeamModel?> getTeam(String teamId) async {
@@ -71,7 +86,7 @@ class TeamRepository {
         .maybeSingle();
 
     if (data == null) return null;
-    return TeamModel.fromJson(data as Map<String, dynamic>);
+    return TeamModel.fromJson(data);
   }
 
   Future<TeamModel> updateTeam({
@@ -111,7 +126,7 @@ class TeamRepository {
         .select()
         .single();
 
-    return TeamModel.fromJson(data as Map<String, dynamic>);
+    return TeamModel.fromJson(data);
   }
 
   Future<void> deleteTeam(String teamId) async {
@@ -129,7 +144,7 @@ class TeamRepository {
         .eq('is_active', true)
         .order('created_at', ascending: false);
 
-    return data.map((json) => TeamModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => TeamModel.fromJson(json)).toList();
   }
 
   Future<int> getTeamCount(String tournamentId) async {

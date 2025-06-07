@@ -4,7 +4,6 @@ import 'package:teamapp3/features/profile/bloc/profile_state.dart';
 import 'package:teamapp3/features/profile/data/repositories/profile_repository.dart';
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
-  final ProfileRepository _profileRepository;
 
   ProfileBloc({ProfileRepository? profileRepository})
       : _profileRepository = profileRepository ?? ProfileRepository(),
@@ -16,6 +15,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
     on<MyTournamentsLoadRequested>(_onMyTournamentsLoadRequested);
     on<ProfileRefreshRequested>(_onProfileRefreshRequested);
   }
+  final ProfileRepository _profileRepository;
 
   Future<void> _onProfileLoadRequested(
     ProfileLoadRequested event,
@@ -27,7 +27,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final profile = await _profileRepository.getUserProfile(event.userId);
       emit(state.toSuccess(profile: profile));
     } catch (e) {
-      emit(state.toError('Failed to load profile: ${e.toString()}'));
+      emit(state.toError('Failed to load profile: ${e}'));
     }
   }
 
@@ -48,7 +48,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       );
       emit(state.toSuccess(profile: updatedProfile));
     } catch (e) {
-      emit(state.toError('Failed to update profile: ${e.toString()}'));
+      emit(state.toError('Failed to update profile: ${e}'));
     }
   }
 
@@ -68,7 +68,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final updatedProfile = await _profileRepository.getUserProfile(event.userId);
       emit(state.toSuccess(profile: updatedProfile));
     } catch (e) {
-      emit(state.toError('Failed to upload profile picture: ${e.toString()}'));
+      emit(state.toError('Failed to upload profile picture: ${e}'));
     }
   }
 
@@ -85,7 +85,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final updatedProfile = await _profileRepository.getUserProfile(event.userId);
       emit(state.toSuccess(profile: updatedProfile));
     } catch (e) {
-      emit(state.toError('Failed to delete profile picture: ${e.toString()}'));
+      emit(state.toError('Failed to delete profile picture: ${e}'));
     }
   }
 
@@ -97,7 +97,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final tournaments = await _profileRepository.getMyTournaments(event.userId);
       emit(state.toSuccess(myTournaments: tournaments));
     } catch (e) {
-      emit(state.toError('Failed to load tournaments: ${e.toString()}'));
+      emit(state.toError('Failed to load tournaments: ${e}'));
     }
   }
 
@@ -110,7 +110,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
       final tournaments = await _profileRepository.getMyTournaments(event.userId);
       emit(state.toSuccess(profile: profile, myTournaments: tournaments));
     } catch (e) {
-      emit(state.toError('Failed to refresh profile: ${e.toString()}'));
+      emit(state.toError('Failed to refresh profile: ${e}'));
     }
   }
 } 

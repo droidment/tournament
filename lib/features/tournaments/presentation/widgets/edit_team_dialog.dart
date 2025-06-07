@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../bloc/category_bloc.dart';
-import '../../bloc/category_state.dart';
-import '../../../../core/models/team_model.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_bloc.dart';
+import 'package:teamapp3/features/tournaments/bloc/category_state.dart';
+import 'package:teamapp3/core/models/team_model.dart';
 
 class EditTeamDialog extends StatefulWidget {
-  final TeamModel team;
-  final Function(Map<String, dynamic>) onTeamUpdated;
 
   const EditTeamDialog({
     super.key,
     required this.team,
     required this.onTeamUpdated,
   });
+  final TeamModel team;
+  final Function(Map<String, dynamic>) onTeamUpdated;
 
   @override
   State<EditTeamDialog> createState() => _EditTeamDialogState();
@@ -209,13 +209,12 @@ class _EditTeamDialogState extends State<EditTeamDialog> {
                     ),
                     items: [
                       const DropdownMenuItem<String>(
-                        value: null,
                         child: Text('No Category'),
                       ),
                       ...state.categories.map((category) => DropdownMenuItem(
                         value: category.id,
                         child: Text(category.name),
-                      )),
+                      ),),
                     ],
                     onChanged: (value) {
                       setState(() {

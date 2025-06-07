@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
-import '../../../../core/models/team_model.dart';
-import '../../../../core/models/tournament_resource_model.dart';
-import '../../../../core/models/game_model.dart';
-import '../../data/models/category_model.dart';
-import '../../data/models/tournament_model.dart';
-import '../../data/repositories/team_repository.dart';
-import '../../data/repositories/tournament_resource_repository.dart';
-import '../../data/repositories/category_repository.dart';
-import '../../data/repositories/tournament_repository.dart';
-import '../../data/services/schedule_generator_service.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/game_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/category_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/team_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/tournament_resource_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/category_repository.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/tournament_repository.dart';
+import 'package:teamapp3/features/tournaments/data/services/schedule_generator_service.dart';
 
 class GenerateScheduleDialog extends StatefulWidget {
-  final String tournamentId;
-  final Function(List<GameModel>) onScheduleGenerated;
 
   const GenerateScheduleDialog({
     super.key,
     required this.tournamentId,
     required this.onScheduleGenerated,
   });
+  final String tournamentId;
+  final Function(List<GameModel>) onScheduleGenerated;
 
   @override
   State<GenerateScheduleDialog> createState() => _GenerateScheduleDialogState();
@@ -86,9 +86,9 @@ class _GenerateScheduleDialogState extends State<GenerateScheduleDialog> {
         
         // Initialize dates with tournament dates if available
         if (tournament?.startDate != null && tournament?.endDate != null) {
-          print('🗓️ Using tournament dates: ${tournament!.startDate} to ${tournament!.endDate}');
-          _startDate = tournament!.startDate!.copyWith(hour: 0, minute: 0, second: 0, millisecond: 0);
-          _endDate = tournament!.endDate!.copyWith(hour: 23, minute: 59, second: 59, millisecond: 999);
+          print('🗓️ Using tournament dates: ${tournament!.startDate} to ${tournament.endDate}');
+          _startDate = tournament.startDate.copyWith(hour: 0, minute: 0, second: 0, millisecond: 0);
+          _endDate = tournament.endDate.copyWith(hour: 23, minute: 59, second: 59, millisecond: 999);
         } else {
           print('⚠️ Tournament dates not available, using current date range');
           // Fallback to current dates if tournament dates aren't set
@@ -240,19 +240,19 @@ class _GenerateScheduleDialogState extends State<GenerateScheduleDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.event, color: Colors.blue, size: 16),
-                        const SizedBox(width: 8),
-                        const Text(
+                        Icon(Icons.event, color: Colors.blue, size: 16),
+                        SizedBox(width: 8),
+                        Text(
                           'Tournament Period:',
                           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    if (_tournament!.startDate != null && _tournament!.endDate != null) ...[
-                      Text('${_formatDate(_tournament!.startDate!)} - ${_formatDate(_tournament!.endDate!)}'),
+                    if (_tournament!.endDate != null) ...[
+                      Text('${_formatDate(_tournament!.startDate)} - ${_formatDate(_tournament!.endDate)}'),
                     ] else ...[
                       const Text('Tournament dates not set', style: TextStyle(color: Colors.orange)),
                     ],
@@ -350,13 +350,12 @@ class _GenerateScheduleDialogState extends State<GenerateScheduleDialog> {
               ),
               items: [
                 const DropdownMenuItem<CategoryModel>(
-                  value: null,
                   child: Text('All Teams'),
                 ),
                 ..._categories.map((category) => DropdownMenuItem(
                   value: category,
                   child: Text(category.name),
-                )),
+                ),),
               ],
               onChanged: (value) {
                 setState(() {
@@ -625,9 +624,9 @@ class _GenerateScheduleDialogState extends State<GenerateScheduleDialog> {
                       style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
                     ),
                     const SizedBox(height: 4),
-                    Text('• Every team plays every other team once'),
+                    const Text('• Every team plays every other team once'),
                     Text('• Games distributed across ${_resources.length} resource${_resources.length != 1 ? 's' : ''}'),
-                    Text('• Automatic scheduling with conflict avoidance'),
+                    const Text('• Automatic scheduling with conflict avoidance'),
                     Text('• Prevents back-to-back games (${int.tryParse(_minimumRestController.text) ?? 120} min rest)'),
                   ],
                 ),

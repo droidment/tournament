@@ -1,11 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../../core/models/tournament_resource_model.dart';
+import 'package:teamapp3/core/models/tournament_resource_model.dart';
 
 class TournamentResourceRepository {
-  final SupabaseClient _supabaseClient;
 
   TournamentResourceRepository({SupabaseClient? supabaseClient})
       : _supabaseClient = supabaseClient ?? Supabase.instance.client;
+  final SupabaseClient _supabaseClient;
 
   Future<TournamentResourceModel> createResource({
     required String tournamentId,
@@ -36,7 +36,7 @@ class TournamentResourceRepository {
         .select()
         .single();
 
-    return TournamentResourceModel.fromJson(data as Map<String, dynamic>);
+    return TournamentResourceModel.fromJson(data);
   }
 
   Future<List<TournamentResourceModel>> getTournamentResources(String tournamentId) async {
@@ -47,7 +47,7 @@ class TournamentResourceRepository {
         .eq('is_active', true)
         .order('name', ascending: true);
 
-    return data.map((json) => TournamentResourceModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => TournamentResourceModel.fromJson(json)).toList();
   }
 
   Future<List<TournamentResourceModel>> getResourcesByType(String tournamentId, String type) async {
@@ -59,7 +59,7 @@ class TournamentResourceRepository {
         .eq('is_active', true)
         .order('name', ascending: true);
 
-    return data.map((json) => TournamentResourceModel.fromJson(json as Map<String, dynamic>)).toList();
+    return data.map((json) => TournamentResourceModel.fromJson(json)).toList();
   }
 
   Future<TournamentResourceModel?> getResource(String resourceId) async {
@@ -70,7 +70,7 @@ class TournamentResourceRepository {
         .maybeSingle();
 
     if (data == null) return null;
-    return TournamentResourceModel.fromJson(data as Map<String, dynamic>);
+    return TournamentResourceModel.fromJson(data);
   }
 
   Future<TournamentResourceModel> updateResource({
@@ -98,7 +98,7 @@ class TournamentResourceRepository {
         .select()
         .single();
 
-    return TournamentResourceModel.fromJson(data as Map<String, dynamic>);
+    return TournamentResourceModel.fromJson(data);
   }
 
   Future<void> deleteResource(String resourceId) async {

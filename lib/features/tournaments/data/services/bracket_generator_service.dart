@@ -1,8 +1,9 @@
 import 'dart:math';
-import '../../../../core/models/tournament_bracket_model.dart';
-import '../../../../core/models/team_model.dart';
-import '../../../../core/models/game_model.dart';
-import '../repositories/game_repository.dart';
+import 'package:teamapp3/core/models/tournament_bracket_model.dart';
+import 'package:teamapp3/core/models/team_model.dart';
+import 'package:teamapp3/core/models/game_model.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/game_repository.dart';
+import 'package:teamapp3/features/tournaments/data/models/tournament_tier_model.dart';
 
 class BracketGeneratorService {
   final GameRepository _gameRepository = GameRepository();
@@ -33,7 +34,7 @@ class BracketGeneratorService {
     
     // Generate all rounds
     final rounds = <BracketRoundModel>[];
-    DateTime currentDate = startDate;
+    var currentDate = startDate;
     
     // First round with byes if needed
     final firstRoundMatches = _generateFirstRoundMatches(seededTeams, bracketSize);
@@ -41,19 +42,17 @@ class BracketGeneratorService {
       roundNumber: 1,
       roundName: _getRoundName(1, totalRounds, false),
       matches: firstRoundMatches,
-      isComplete: false,
     );
     rounds.add(firstRound);
 
     // Generate subsequent rounds (empty initially)
-    for (int round = 2; round <= totalRounds; round++) {
+    for (var round = 2; round <= totalRounds; round++) {
       final roundMatches = _generateEmptyRoundMatches(round, totalRounds);
       rounds.add(BracketRoundModel(
         roundNumber: round,
         roundName: _getRoundName(round, totalRounds, false),
         matches: roundMatches,
-        isComplete: false,
-      ));
+      ),);
     }
 
     // Create and save games for the first round
@@ -105,7 +104,7 @@ class BracketGeneratorService {
     final rounds = <BracketRoundModel>[];
     
     // Generate winners bracket rounds
-    for (int round = 1; round <= winnersRounds; round++) {
+    for (var round = 1; round <= winnersRounds; round++) {
       final matches = round == 1 
           ? _generateFirstRoundMatches(seededTeams, bracketSize)
           : _generateEmptyRoundMatches(round, winnersRounds, isWinnersBracket: true);
@@ -114,43 +113,33 @@ class BracketGeneratorService {
         roundNumber: round,
         roundName: 'Winners ${_getRoundName(round, winnersRounds, false)}',
         matches: matches,
-        isComplete: false,
-        bracketType: 'winners',
-      ));
+      ),);
     }
 
     // Generate losers bracket rounds
-    for (int round = 1; round <= losersRounds; round++) {
+    for (var round = 1; round <= losersRounds; round++) {
       final matches = _generateEmptyRoundMatches(round, losersRounds, isLosersBracket: true);
       rounds.add(BracketRoundModel(
         roundNumber: winnersRounds + round,
         roundName: 'Losers Round $round',
         matches: matches,
-        isComplete: false,
         bracketType: 'losers',
-      ));
+      ),);
     }
 
     // Generate grand final
     rounds.add(BracketRoundModel(
       roundNumber: totalRounds,
       roundName: 'Grand Final',
-      matches: [
+      matches: const [
         BracketMatchModel(
           matchNumber: 1,
           position: 1,
-          team1Id: null, // TBD
-          team2Id: null, // TBD
-          winnerId: null,
           team1Score: null,
-          team2Score: null,
-          isComplete: false,
-          scheduledDateTime: null,
         ),
       ],
-      isComplete: false,
       bracketType: 'grand_final',
-    ));
+    ),);
 
     // Create games for first round
     await _createBracketGames(
@@ -173,6 +162,124 @@ class BracketGeneratorService {
     );
   }
 
+  /// Generate tiered tournament brackets (Pro, Intermediate, Novice)
+  Future<List<TournamentBracketModel>> generateTieredBrackets({
+    required String tournamentId,
+    required List<TournamentTierModel> tierAssignments,
+    required Map<String, TeamModel> teamsMap,
+    required List<String> resourceIds,
+    required DateTime startDate,
+    int gameDurationMinutes = 60,
+    int timeBetweenGamesMinutes = 30,
+  }) async {
+    print('🏟️ Generating tiered tournament brackets');
+
+    final brackets = <TournamentBracketModel>[];
+    var currentStartDate = startDate;
+
+    // Group teams by tier
+    final tierTeams = <TournamentTier, List<TeamModel>>{};
+    
+    for (final tierAssignment in tierAssignments) {
+      final team = teamsMap[tierAssignment.teamId];
+      if (team != null) {
+        tierTeams.putIfAbsent(tierAssignment.tier, () => []).add(team);
+      }
+    }
+
+    // Generate bracket for each tier
+    for (final tier in [TournamentTier.pro, TournamentTier.intermediate, TournamentTier.novice]) {
+      final teams = tierTeams[tier] ?? [];
+      
+      if (teams.length < 2) {
+        print('⚠️ Skipping ${tier.value} tier: insufficient teams (${teams.length})');
+        continue;
+      }
+
+      // Sort teams by tier seed
+      final sortedTeams = List<TeamModel>.from(teams);
+      final tierSeeding = tierAssignments
+          .where((t) => t.tier == tier)
+          .toList()
+        ..sort((a, b) => a.tierSeed.compareTo(b.tierSeed));
+      
+      sortedTeams.sort((a, b) {
+        final aAssignment = tierSeeding.firstWhere((t) => t.teamId == a.id);
+        final bAssignment = tierSeeding.firstWhere((t) => t.teamId == b.id);
+        return aAssignment.tierSeed.compareTo(bAssignment.tierSeed);
+      });
+
+      // Generate single elimination bracket for this tier
+      final tierBracket = await generateSingleEliminationBracket(
+        tournamentId: tournamentId,
+        teams: sortedTeams,
+        resourceIds: resourceIds,
+        startDate: currentStartDate,
+        gameDurationMinutes: gameDurationMinutes,
+        timeBetweenGamesMinutes: timeBetweenGamesMinutes,
+        seeding: List.generate(sortedTeams.length, (index) => index + 1),
+        randomizeSeeds: false,
+      );
+
+      // Update bracket format to indicate tier
+      final updatedBracket = tierBracket.copyWith(
+        format: '${tier.value}_elimination',
+      );
+
+      brackets.add(updatedBracket);
+
+      // Stagger start times for different tiers (optional)
+      currentStartDate = currentStartDate.add(Duration(minutes: 30));
+
+      print('✅ Generated ${tier.value} tier bracket with ${sortedTeams.length} teams');
+    }
+
+    print('🏆 Tiered brackets generated: ${brackets.length} tiers');
+    return brackets;
+  }
+
+  /// Generate a single tier bracket (used for each tier in tiered tournaments)
+  Future<TournamentBracketModel> generateTierBracket({
+    required String tournamentId,
+    required TournamentTier tier,
+    required List<TeamModel> teams,
+    required List<String> resourceIds,
+    required DateTime startDate,
+    int gameDurationMinutes = 60,
+    int timeBetweenGamesMinutes = 30,
+  }) async {
+    print('🏟️ Generating ${tier.value} tier bracket for ${teams.length} teams');
+
+    if (teams.length < 2) {
+      throw ArgumentError('Need at least 2 teams for tier bracket');
+    }
+
+    final bracket = await generateSingleEliminationBracket(
+      tournamentId: tournamentId,
+      teams: teams,
+      resourceIds: resourceIds,
+      startDate: startDate,
+      gameDurationMinutes: gameDurationMinutes,
+      timeBetweenGamesMinutes: timeBetweenGamesMinutes,
+      randomizeSeeds: false,
+    );
+
+    return bracket.copyWith(
+      format: '${tier.value}_elimination',
+    );
+  }
+
+  String _getTierDisplayName(TournamentTier tier) {
+    switch (tier) {
+      case TournamentTier.pro:
+        return 'Pro';
+      case TournamentTier.intermediate:
+        return 'Intermediate';
+      case TournamentTier.novice:
+        return 'Novice';
+    }
+  }
+
   /// Advance bracket after a game completion
   Future<TournamentBracketModel> advanceBracket({
     required TournamentBracketModel bracket,
@@ -190,7 +297,7 @@ class BracketGeneratorService {
     final updatedRounds = List<BracketRoundModel>.from(bracket.rounds);
     
     // Find the completed match and advance winner
-    for (int roundIndex = 0; roundIndex < updatedRounds.length; roundIndex++) {
+    for (var roundIndex = 0; roundIndex < updatedRounds.length; roundIndex++) {
       final round = updatedRounds[roundIndex];
       final matchIndex = round.matches.indexWhere((m) => m.gameId == completedGame.id);
       
@@ -257,7 +364,7 @@ class BracketGeneratorService {
 
   /// Calculate bracket size (next power of 2)
   int _calculateBracketSize(int teamCount) {
-    int size = 1;
+    var size = 1;
     while (size < teamCount) {
       size *= 2;
     }
@@ -281,12 +388,12 @@ class BracketGeneratorService {
     final teamsWithByes = List<TeamModel?>.filled(bracketSize, null);
     
     // Place teams using standard tournament seeding
-    for (int i = 0; i < seededTeams.length; i++) {
+    for (var i = 0; i < seededTeams.length; i++) {
       teamsWithByes[_getSeedPosition(i, bracketSize)] = seededTeams[i];
     }
 
     // Create matches for first round
-    for (int i = 0; i < bracketSize; i += 2) {
+    for (var i = 0; i < bracketSize; i += 2) {
       final team1 = teamsWithByes[i];
       final team2 = teamsWithByes[i + 1];
 
@@ -299,14 +406,10 @@ class BracketGeneratorService {
           matchNumber: matches.length + 1,
           position: matches.length + 1,
           team1Id: advancingTeam!.id,
-          team2Id: null,
           winnerId: advancingTeam.id,
-          team1Score: null,
-          team2Score: null,
           isBye: true,
           isComplete: true,
-          scheduledDateTime: null,
-        ));
+        ),);
       } else {
         // Regular match
         matches.add(BracketMatchModel(
@@ -314,13 +417,7 @@ class BracketGeneratorService {
           position: matches.length + 1,
           team1Id: team1.id,
           team2Id: team2.id,
-          winnerId: null,
-          team1Score: null,
-          team2Score: null,
-          isComplete: false,
-          isBye: false,
-          scheduledDateTime: null,
-        ));
+        ),);
       }
     }
 
@@ -340,19 +437,11 @@ class BracketGeneratorService {
     if (currentRoundMatches < 1) return [];
 
     final matches = <BracketMatchModel>[];
-    for (int i = 0; i < currentRoundMatches; i++) {
+    for (var i = 0; i < currentRoundMatches; i++) {
       matches.add(BracketMatchModel(
         matchNumber: i + 1,
         position: i + 1,
-        team1Id: null,
-        team2Id: null,
-        winnerId: null,
-        team1Score: null,
-        team2Score: null,
-        isComplete: false,
-        isBye: false,
-        scheduledDateTime: null,
-      ));
+      ),);
     }
     
     return matches;
@@ -367,7 +456,7 @@ class BracketGeneratorService {
       8: [0, 7, 3, 4, 1, 6, 2, 5],
       16: [0, 15, 7, 8, 3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10],
       32: [0, 31, 15, 16, 7, 24, 8, 23, 3, 28, 12, 19, 4, 27, 11, 20, 
-           1, 30, 14, 17, 6, 25, 9, 22, 2, 29, 13, 18, 5, 26, 10, 21],
+           1, 30, 14, 17, 6, 25, 9, 22, 2, 29, 13, 18, 5, 26, 10, 21,],
     };
 
     final positions = seedPositions[bracketSize];
@@ -405,8 +494,8 @@ class BracketGeneratorService {
       throw ArgumentError('Need at least one resource to schedule bracket games');
     }
 
-    DateTime currentDateTime = startDate;
-    int resourceIndex = 0;
+    var currentDateTime = startDate;
+    var resourceIndex = 0;
 
     for (final round in rounds) {
       for (final match in round.matches) {
@@ -454,15 +543,148 @@ class BracketGeneratorService {
     required int gameDurationMinutes,
     required int timeBetweenGamesMinutes,
   }) async {
-    // Implementation for advancing winners would go here
-    // This involves complex logic for different bracket types
     print('🏃 Advancing winner ${completedMatch.winnerId} from round ${roundIndex + 1}');
     
-    // For now, this is a placeholder for the complex advancement logic
-    // Real implementation would handle:
-    // - Single elimination advancement
-    // - Double elimination (winners/losers bracket management)
-    // - Creating next round games when round is complete
-    // - Determining final standings
+    if (completedMatch.winnerId == null) {
+      throw ArgumentError('Cannot advance winner: match has no winner');
+    }
+
+    // Handle single elimination advancement
+    if (bracket.isSingleElimination) {
+      await _advanceSingleEliminationWinner(
+        bracket: bracket,
+        completedMatch: completedMatch,
+        roundIndex: roundIndex,
+        matchIndex: matchIndex,
+        resourceIds: resourceIds,
+        gameDurationMinutes: gameDurationMinutes,
+        timeBetweenGamesMinutes: timeBetweenGamesMinutes,
+      );
+    } else if (bracket.isDoubleElimination) {
+      await _advanceDoubleEliminationWinner(
+        bracket: bracket,
+        completedMatch: completedMatch,
+        roundIndex: roundIndex,
+        matchIndex: matchIndex,
+        resourceIds: resourceIds,
+        gameDurationMinutes: gameDurationMinutes,
+        timeBetweenGamesMinutes: timeBetweenGamesMinutes,
+      );
+    }
+  }
+
+  /// Advance winner in single elimination bracket
+  Future<void> _advanceSingleEliminationWinner({
+    required TournamentBracketModel bracket,
+    required BracketMatchModel completedMatch,
+    required int roundIndex,
+    required int matchIndex,
+    required List<String> resourceIds,
+    required int gameDurationMinutes,
+    required int timeBetweenGamesMinutes,
+  }) async {
+    // Check if there's a next round
+    if (roundIndex + 1 >= bracket.rounds.length) {
+      print('🏆 Tournament complete! Winner: ${completedMatch.winnerId}');
+      return;
+    }
+
+    final currentRound = bracket.rounds[roundIndex];
+    final nextRound = bracket.rounds[roundIndex + 1];
+    
+    // Calculate which match in the next round this winner advances to
+    final nextMatchIndex = matchIndex ~/ 2;
+    
+    if (nextMatchIndex >= nextRound.matches.length) {
+      print('❌ Error: Next match index out of bounds');
+      return;
+    }
+
+    final nextMatch = nextRound.matches[nextMatchIndex];
+    
+    // Determine if winner goes to team1 or team2 slot
+    final isTeam1Slot = (matchIndex % 2) == 0;
+    
+    // Update the next round match with the advancing team
+    final updatedNextMatch = nextMatch.copyWith(
+      team1Id: isTeam1Slot ? completedMatch.winnerId : nextMatch.team1Id,
+      team2Id: !isTeam1Slot ? completedMatch.winnerId : nextMatch.team2Id,
+    );
+
+    // Update the bracket structure
+    final updatedNextMatches = List<BracketMatchModel>.from(nextRound.matches);
+    updatedNextMatches[nextMatchIndex] = updatedNextMatch;
+
+    // Check if the next round is ready to start
+    final updatedNextRound = nextRound.copyWith(matches: updatedNextMatches);
+    
+    // If this match now has both teams, create the game
+    if (updatedNextMatch.hasTeams && updatedNextMatch.gameId == null) {
+      await _createNextRoundGame(
+        tournamentId: bracket.tournamentId,
+        match: updatedNextMatch,
+        round: updatedNextRound,
+        resourceIds: resourceIds,
+        gameDurationMinutes: gameDurationMinutes,
+        timeBetweenGamesMinutes: timeBetweenGamesMinutes,
+      );
+    }
+
+    print('✅ Advanced winner ${completedMatch.winnerId} to ${updatedNextRound.roundName}');
+  }
+
+  /// Advance winner in double elimination bracket (placeholder for future implementation)
+  Future<void> _advanceDoubleEliminationWinner({
+    required TournamentBracketModel bracket,
+    required BracketMatchModel completedMatch,
+    required int roundIndex,
+    required int matchIndex,
+    required List<String> resourceIds,
+    required int gameDurationMinutes,
+    required int timeBetweenGamesMinutes,
+  }) async {
+    // TODO: Implement double elimination advancement logic
+    // This would handle:
+    // - Winners bracket advancement
+    // - Losers bracket advancement
+    // - Grand final logic
+    print('🔄 Double elimination advancement not yet implemented');
+  }
+
+  /// Create a game for the next round when both teams are ready
+  Future<void> _createNextRoundGame({
+    required String tournamentId,
+    required BracketMatchModel match,
+    required BracketRoundModel round,
+    required List<String> resourceIds,
+    required int gameDurationMinutes,
+    required int timeBetweenGamesMinutes,
+  }) async {
+    if (!match.hasTeams || resourceIds.isEmpty) {
+      return;
+    }
+
+    try {
+      // Calculate start time based on previous round completion
+      final startTime = DateTime.now().add(Duration(minutes: timeBetweenGamesMinutes));
+      
+      final game = await _gameRepository.createGame(
+        tournamentId: tournamentId,
+        round: round.roundNumber,
+        roundName: round.roundName,
+        team1Id: match.team1Id!,
+        team2Id: match.team2Id!,
+        resourceId: resourceIds[0], // Use first available resource
+        scheduledDate: startTime,
+        scheduledTime: '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}',
+        estimatedDuration: gameDurationMinutes,
+        notes: 'Bracket: ${round.roundName} - Match ${match.matchNumber}',
+        isPublished: true,
+      );
+
+      print('🎮 Created next round game: ${game.id} for ${round.roundName}');
+    } catch (e) {
+      print('❌ Error creating next round game: $e');
+    }
   }
 } 

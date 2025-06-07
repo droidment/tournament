@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../data/models/category_model.dart';
+import 'package:teamapp3/features/tournaments/data/models/category_model.dart';
 
 class CategoryListItem extends StatelessWidget {
-  final CategoryModel category;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   const CategoryListItem({
     super.key,
@@ -12,6 +9,9 @@ class CategoryListItem extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
   });
+  final CategoryModel category;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {

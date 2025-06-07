@@ -1,10 +1,9 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'resource_event.dart';
-import 'resource_state.dart';
-import '../data/repositories/tournament_resource_repository.dart';
+import 'package:teamapp3/features/tournaments/bloc/resource_event.dart';
+import 'package:teamapp3/features/tournaments/bloc/resource_state.dart';
+import 'package:teamapp3/features/tournaments/data/repositories/tournament_resource_repository.dart';
 
 class ResourceBloc extends Bloc<ResourceEvent, ResourceState> {
-  final TournamentResourceRepository _resourceRepository;
 
   ResourceBloc({TournamentResourceRepository? resourceRepository})
       : _resourceRepository = resourceRepository ?? TournamentResourceRepository(),
@@ -16,6 +15,7 @@ class ResourceBloc extends Bloc<ResourceEvent, ResourceState> {
     on<ResourceDeleteRequested>(_onResourceDeleteRequested);
     on<ResourceTypesLoadRequested>(_onResourceTypesLoadRequested);
   }
+  final TournamentResourceRepository _resourceRepository;
 
   Future<void> _onResourceCreateRequested(
     ResourceCreateRequested event,
@@ -37,7 +37,7 @@ class ResourceBloc extends Bloc<ResourceEvent, ResourceState> {
       final resources = await _resourceRepository.getTournamentResources(event.tournamentId);
       emit(state.toSuccess(resources: resources, selectedResource: resource));
     } catch (e) {
-      emit(state.toError('Failed to create resource: ${e.toString()}'));
+      emit(state.toError('Failed to create resource: ${e}'));
     }
   }
 
@@ -51,7 +51,7 @@ class ResourceBloc extends Bloc<ResourceEvent, ResourceState> {
       final resources = await _resourceRepository.getTournamentResources(event.tournamentId);
       emit(state.toSuccess(resources: resources));
     } catch (e) {
-      emit(state.toError('Failed to load resources: ${e.toString()}'));
+      emit(state.toError('Failed to load resources: ${e}'));
     }
   }
 
@@ -65,7 +65,7 @@ class ResourceBloc extends Bloc<ResourceEvent, ResourceState> {
       final resources = await _resourceRepository.getResourcesByType(event.tournamentId, event.type);
       emit(state.toSuccess(resources: resources));
     } catch (e) {
-      emit(state.toError('Failed to load resources by type: ${e.toString()}'));
+      emit(state.toError('Failed to load resources by type: ${e}'));
     }
   }
 
@@ -93,7 +93,7 @@ class ResourceBloc extends Bloc<ResourceEvent, ResourceState> {
 
       emit(state.toSuccess(resources: updatedResources, selectedResource: updatedResource));
     } catch (e) {
-      emit(state.toError('Failed to update resource: ${e.toString()}'));
+      emit(state.toError('Failed to update resource: ${e}'));
     }
   }
 
@@ -113,7 +113,7 @@ class ResourceBloc extends Bloc<ResourceEvent, ResourceState> {
 
       emit(state.toSuccess(resources: updatedResources));
     } catch (e) {
-      emit(state.toError('Failed to delete resource: ${e.toString()}'));
+      emit(state.toError('Failed to delete resource: ${e}'));
     }
   }
 
@@ -125,7 +125,7 @@ class ResourceBloc extends Bloc<ResourceEvent, ResourceState> {
       final types = await _resourceRepository.getResourceTypes(event.tournamentId);
       emit(state.toSuccess(resourceTypes: types));
     } catch (e) {
-      emit(state.toError('Failed to load resource types: ${e.toString()}'));
+      emit(state.toError('Failed to load resource types: ${e}'));
     }
   }
 } 

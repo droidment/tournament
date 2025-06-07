@@ -1,0 +1,31 @@
+{
+  "project": {
+    "name": "Tournament Management App",
+    "type": "flutter",
+    "description": "A comprehensive Flutter tournament management application",
+    "version": "1.0.0"
+  },
+  "ai": {
+    "mainModel": "claude-3-sonnet",
+    "researchModel": "perplexity-llama-3.1-sonar-small-128k-online",
+    "fallbackModel": "gpt-4"
+  },
+  "paths": {
+    "prd": ".taskmaster/docs/prd.txt",
+    "tasks": ".taskmaster/tasks/",
+    "docs": ".taskmaster/docs/",
+    "templates": ".taskmaster/templates/"
+  },
+  "features": {
+    "autoTaskGeneration": true,
+    "dependencyTracking": true,
+    "progressReporting": true,
+    "codeGeneration": true
+  },
+  "flutter": {
+    "targetPlatforms": ["android", "ios", "web"],
+    "architecture": "clean_architecture",
+    "stateManagement": "provider",
+    "backend": "supabase"
+  }
+} 

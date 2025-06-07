@@ -5,6 +5,9 @@ part 'user_model.g.dart';
 
 @JsonSerializable()
 class UserModel extends Equatable {
+
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
   const UserModel({
     required this.id,
     required this.email,
@@ -28,9 +31,6 @@ class UserModel extends Equatable {
   final DateTime? createdAt;
   @JsonKey(name: 'updated_at')
   final DateTime? updatedAt;
-
-  factory UserModel.fromJson(Map<String, dynamic> json) =>
-      _$UserModelFromJson(json);
 
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
 

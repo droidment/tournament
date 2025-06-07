@@ -109,6 +109,16 @@ lib/core/config/env.dart
 # Cursor MCP configuration - Contains sensitive API keys
 .cursor/mcp.json
 
+# TaskMaster AI generated files (track structure but ignore generated tasks)
+.taskmaster/tasks/*.json
+.taskmaster/cache/
+.taskmaster/logs/
+# Keep the structure and documentation
+!.taskmaster/tasks/README.md
+!.taskmaster/docs/
+!.taskmaster/templates/
+!.taskmaster/config.json
+
 # Exceptions to the above rules.
 !**/ios/**/default.mode1v3
 !**/ios/**/default.mode2v3
