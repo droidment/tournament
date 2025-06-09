@@ -83,7 +83,7 @@ class TieredTournamentService {
     return groups;
   }
 
-  /// Generate round-robin games for all groups
+  /// Generate round-robin games for all groups with optimized court utilization
   static List<GameModel> generateGroupStageGames({
     required String tournamentId,
     required List<TournamentGroupModel> groups,
@@ -94,46 +94,69 @@ class TieredTournamentService {
   }) {
     final games = <GameModel>[];
     var gameNumber = 1;
-    var currentTime = tournamentStart;
 
+    // Assign each group to a specific court for optimal court utilization
+    final groupCourtAssignments = <String, String>{};
+    for (int i = 0; i < groups.length; i++) {
+      final group = groups[i];
+      if (group.teamIds.length >= 2) {
+        // Assign group to a court (cycle through available courts)
+        final courtIndex = i % resourceIds.length;
+        groupCourtAssignments[group.id] = resourceIds[courtIndex];
+        
+        print('📋 ${group.groupName} → ${_getCourtName(resourceIds[courtIndex], resourceIds)}');
+      }
+    }
+
+    // Generate games for each group with their assigned court
+    final groupGamesMap = <String, List<GameModel>>{};
+    
     for (final group in groups) {
       if (group.teamIds.length < 2) continue;
+      
+      final assignedCourt = groupCourtAssignments[group.id];
+      if (assignedCourt == null) continue;
 
-      // Generate round-robin matchups for this group
-      final groupGames = _generateRoundRobinForGroup(
+      // Generate round-robin matchups for this group on its assigned court
+      final groupGames = _generateRoundRobinForGroupOptimized(
         tournamentId: tournamentId,
         group: group,
-        resourceIds: resourceIds,
-        startTime: currentTime,
+        assignedResourceId: assignedCourt,
+        startTime: tournamentStart,
         gameDurationMinutes: gameDurationMinutes,
         timeBetweenGamesMinutes: timeBetweenGamesMinutes,
         startingGameNumber: gameNumber,
       );
 
-      games.addAll(groupGames);
+      groupGamesMap[group.id] = groupGames;
       gameNumber += groupGames.length;
+    }
 
-      // Update current time for next group
-      if (groupGames.isNotEmpty) {
-        final lastGame = groupGames.last;
-        if (lastGame.scheduledDate != null) {
-          // Parse the last game's scheduled time and add duration
-          final timeParts = lastGame.scheduledTime?.split(':') ?? ['0', '0'];
-          final lastGameDateTime = DateTime(
-            lastGame.scheduledDate!.year,
-            lastGame.scheduledDate!.month, 
-            lastGame.scheduledDate!.day,
-            int.parse(timeParts[0]),
-            int.parse(timeParts[1]),
-          );
-          currentTime = lastGameDateTime.add(Duration(
-            minutes: gameDurationMinutes + timeBetweenGamesMinutes,
-          ));
-        }
+    // Merge all group games while maintaining court assignments
+    for (final group in groups) {
+      if (groupGamesMap.containsKey(group.id)) {
+        games.addAll(groupGamesMap[group.id]!);
       }
     }
 
-    print('🎮 Generated ${games.length} group stage games');
+    // Sort games by scheduled time for better organization
+    games.sort((a, b) {
+      if (a.scheduledDate == null || b.scheduledDate == null) return 0;
+      if (a.scheduledTime == null || b.scheduledTime == null) return 0;
+      
+      final aDateTime = _parseGameDateTime(a.scheduledDate!, a.scheduledTime!);
+      final bDateTime = _parseGameDateTime(b.scheduledDate!, b.scheduledTime!);
+      return aDateTime.compareTo(bDateTime);
+    });
+
+    print('🏟️ Court assignments:');
+    groupCourtAssignments.forEach((groupId, courtId) {
+      final group = groups.firstWhere((g) => g.id == groupId);
+      final courtName = _getCourtName(courtId, resourceIds);
+      print('   ${group.groupName}: $courtName');
+    });
+    
+    print('🎮 Generated ${games.length} group stage games across ${groupCourtAssignments.length} courts');
     return games;
   }
 
@@ -316,6 +339,71 @@ class TieredTournamentService {
     }
 
     return games;
+  }
+
+  static List<GameModel> _generateRoundRobinForGroupOptimized({
+    required String tournamentId,
+    required TournamentGroupModel group,
+    required String assignedResourceId,
+    required DateTime startTime,
+    required int gameDurationMinutes,
+    required int timeBetweenGamesMinutes,
+    required int startingGameNumber,
+  }) {
+    final games = <GameModel>[];
+    final teamIds = group.teamIds;
+    var gameNumber = startingGameNumber;
+    var currentTime = startTime;
+
+    // Generate round-robin matchups - all games for this group use the assigned court
+    for (int i = 0; i < teamIds.length; i++) {
+      for (int j = i + 1; j < teamIds.length; j++) {
+        games.add(GameModel(
+          id: _uuid.v4(),
+          tournamentId: tournamentId,
+          team1Id: teamIds[i],
+          team2Id: teamIds[j],
+          resourceId: assignedResourceId, // Use assigned court only
+          scheduledDate: currentTime,
+          scheduledTime: '${currentTime.hour.toString().padLeft(2, '0')}:${currentTime.minute.toString().padLeft(2, '0')}',
+          status: GameStatus.scheduled,
+          gameNumber: gameNumber,
+          notes: 'Group Stage - ${group.groupName}',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ));
+
+        gameNumber++;
+        currentTime = currentTime.add(Duration(
+          minutes: gameDurationMinutes + timeBetweenGamesMinutes,
+        ));
+      }
+    }
+
+    return games;
+  }
+
+  static String _getCourtName(String resourceId, List<String> allResourceIds) {
+    // Try to find the index and create a meaningful name
+    final index = allResourceIds.indexOf(resourceId);
+    if (index != -1) {
+      return 'Court ${index + 1}';
+    }
+    return 'Court ${resourceId.substring(0, 8)}...'; // Fallback to partial ID
+  }
+
+  static DateTime _parseGameDateTime(DateTime date, String time) {
+    final timeParts = time.split(':');
+    final hour = int.tryParse(timeParts[0]) ?? 0;
+    final minute = timeParts.length > 1 ? int.tryParse(timeParts[1]) ?? 0 : 0;
+    
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      hour,
+      minute,
+    );
   }
 
   static List<_GroupStanding> _calculateGroupStandings({

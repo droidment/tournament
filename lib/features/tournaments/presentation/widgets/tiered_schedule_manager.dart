@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:teamapp3/core/models/game_model.dart';
 import 'package:teamapp3/core/models/team_model.dart';
 import 'package:teamapp3/core/models/tournament_resource_model.dart';
@@ -49,12 +50,41 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
   // UI state
   bool _isLoading = false;
   bool _isGeneratingSchedule = false;
+  bool _isScheduleView = false;
+  bool _isGroupView = false;
+  
+  // Game data cache to avoid parent rebuilds
+  List<GameModel> _cachedGames = [];
 
   @override
   void initState() {
     super.initState();
     _phaseTabController = TabController(length: 4, vsync: this);
+    _cachedGames = List.from(widget.existingGames);
     _initializeTournamentState();
+  }
+
+  @override
+  void didUpdateWidget(TieredScheduleManager oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only update cached games if they actually changed
+    if (widget.existingGames.length != _cachedGames.length ||
+        !_gamesListEqual(widget.existingGames, _cachedGames)) {
+      _cachedGames = List.from(widget.existingGames);
+    }
+  }
+
+  bool _gamesListEqual(List<GameModel> list1, List<GameModel> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (list1[i].id != list2[i].id ||
+          list1[i].status != list2[i].status ||
+          list1[i].team1Score != list2[i].team1Score ||
+          list1[i].team2Score != list2[i].team2Score) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @override
@@ -74,8 +104,10 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
       _groups = await _groupRepository.getGroupsByTournament(widget.tournamentId);
       _tierAssignments = await _tierRepository.getTiersByTournament(widget.tournamentId);
       
-      // Determine current phase
-      _currentPhase = _determineCurrentPhase();
+      // Determine current phase only if not already set
+      if (_currentPhase == TieredTournamentPhase.setup) {
+        _currentPhase = _determineCurrentPhase();
+      }
       
       setState(() => _isLoading = false);
     } catch (e) {
@@ -90,7 +122,7 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
     }
     
     // Check if group stage games exist
-    final groupStageGames = widget.existingGames.where((game) =>
+    final groupStageGames = _cachedGames.where((game) =>
       game.notes?.contains('Group Stage') == true ||
       game.roundName?.contains('Group') == true
     ).toList();
@@ -113,7 +145,7 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
     }
     
     // Check if tier playoff games exist
-    final tierPlayoffGames = widget.existingGames.where((game) =>
+    final tierPlayoffGames = _cachedGames.where((game) =>
       game.notes?.contains('Tier') == true ||
       game.roundName?.contains('Elimination') == true
     ).toList();
@@ -133,10 +165,74 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
 
     return Column(
       children: [
-        _buildPhaseIndicator(),
-        const SizedBox(height: 16),
-        _buildPhaseTabBar(),
-        const SizedBox(height: 16),
+        // Header Card with Phase Info
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Theme.of(context).primaryColor.withOpacity(0.8),
+                Theme.of(context).primaryColor.withOpacity(0.6),
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        _getPhaseIcon(_currentPhase),
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Current Phase: ${_getPhaseDisplayName(_currentPhase)}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              _getPhaseDescription(_currentPhase),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Schedule Actions Menu in Header
+                      if (_currentPhase == TieredTournamentPhase.groupStage)
+                        _buildHeaderScheduleActions(),
+                    ],
+                  ),
+                  if (_structure != null) ...[
+                    const SizedBox(height: 16),
+                    _buildTournamentStructureInfo(),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Phase Tabs
+        Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: _buildPhaseTabBar(),
+        ),
+        // Tab Content
         Expanded(
           child: TabBarView(
             controller: _phaseTabController,
@@ -149,48 +245,6 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildPhaseIndicator() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  _getPhaseIcon(_currentPhase),
-                  color: _getPhaseColor(_currentPhase),
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Current Phase: ${_getPhaseDisplayName(_currentPhase)}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _getPhaseDescription(_currentPhase),
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 14,
-              ),
-            ),
-            if (_structure != null) ...[
-              const SizedBox(height: 12),
-              _buildTournamentStructureInfo(),
-            ],
-          ],
-        ),
-      ),
     );
   }
 
@@ -308,6 +362,170 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildHeaderScheduleActions() {
+    final groupStageGames = _cachedGames.where((game) =>
+      game.notes?.contains('Group Stage') == true ||
+      game.roundName?.contains('Group') == true
+    ).toList();
+    
+    final hasInProgressOrCompleted = groupStageGames.any((g) => 
+      g.status == GameStatus.inProgress || g.status == GameStatus.completed);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+      ),
+      child: PopupMenuButton<String>(
+        enabled: !_isGeneratingSchedule,
+        offset: const Offset(0, 40),
+        icon: Icon(
+          _isGeneratingSchedule ? Icons.hourglass_empty : Icons.more_vert,
+          color: Colors.white,
+        ),
+        tooltip: 'Schedule Actions',
+        itemBuilder: (context) => [
+          if (groupStageGames.isEmpty) ...[
+            PopupMenuItem<String>(
+              value: 'generate',
+              child: Row(
+                children: [
+                  Icon(Icons.auto_fix_high, color: Colors.blue[600], size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Generate Schedule',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          'Create optimized court schedule',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            if (!hasInProgressOrCompleted) ...[
+              PopupMenuItem<String>(
+                value: 'regenerate',
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh, color: Colors.blue[600], size: 20),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Regenerate Schedule',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          Text(
+                            'Apply optimized court assignments',
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+            ],
+            PopupMenuItem<String>(
+              value: 'refresh',
+              child: Row(
+                children: [
+                  Icon(Icons.sync, color: Colors.green[600], size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Refresh View',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          'Reload schedule from database',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'clear',
+              child: Row(
+                children: [
+                  Icon(Icons.delete_forever, color: Colors.red[600], size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Delete All Games',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          'Clear all games and results',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem<String>(
+              value: 'export',
+              child: Row(
+                children: [
+                  Icon(Icons.download, color: Colors.purple[600], size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Export Schedule',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          'Download as CSV or PDF',
+                          style: TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+        onSelected: (value) {
+          if (value == 'generate') {
+            _generateGroupStageSchedule();
+          } else {
+            _handleScheduleAction(value, hasInProgressOrCompleted);
+          }
+        },
+      ),
     );
   }
 
@@ -546,54 +764,79 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
   }
 
   Widget _buildGroupStageScheduling() {
-    final groupStageGames = widget.existingGames.where((game) =>
+    final groupStageGames = _cachedGames.where((game) =>
       game.notes?.contains('Group Stage') == true ||
       game.roundName?.contains('Group') == true
     ).toList();
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Group Stage Schedule',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return Column(
+      children: [
+        // Header Card with Stats and Controls
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Group Stage Schedule',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    if (groupStageGames.isNotEmpty)
+                      _buildViewToggle(),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (groupStageGames.isEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.schedule, color: Colors.grey.shade600),
+                      const SizedBox(width: 8),
+                      const Text('No group stage games scheduled yet.'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _isGeneratingSchedule ? null : _generateGroupStageSchedule,
+                    icon: _isGeneratingSchedule
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.calendar_today),
+                    label: Text(_isGeneratingSchedule ? 'Generating...' : 'Generate Group Stage Schedule'),
+                  ),
+                ] else ...[
+                  _buildGroupStageStats(groupStageGames),
+                ],
+              ],
             ),
-            const SizedBox(height: 16),
-            if (groupStageGames.isEmpty) ...[
-              const Text('No group stage games scheduled yet.'),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _isGeneratingSchedule ? null : _generateGroupStageSchedule,
-                icon: _isGeneratingSchedule
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.calendar_today),
-                label: Text(_isGeneratingSchedule ? 'Generating...' : 'Generate Group Stage Schedule'),
-              ),
-            ] else ...[
-              Text('${groupStageGames.length} group stage games scheduled'),
-              const SizedBox(height: 8),
-              Text(
-                'Completed: ${groupStageGames.where((g) => g.status == GameStatus.completed).length}/${groupStageGames.length}',
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              // Add detailed group stage game display here
-            ],
-          ],
+          ),
         ),
-      ),
+        
+        // Schedule Content
+        if (groupStageGames.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 400, // Fixed height instead of Expanded
+            child: _isScheduleView 
+                ? _buildGroupStageScheduleView(groupStageGames)
+                : _isGroupView
+                    ? _buildGroupStageGroupView(groupStageGames)
+                    : _buildGroupStageListView(groupStageGames),
+          ),
+        ],
+      ],
     );
   }
 
   Widget _buildTierClassificationContent() {
     // Check if group stage is complete
-    final groupStageGames = widget.existingGames.where((game) =>
+    final groupStageGames = _cachedGames.where((game) =>
       game.notes?.contains('Group Stage') == true ||
       game.roundName?.contains('Group') == true
     ).toList();
@@ -752,10 +995,20 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
       );
     }
 
-    final tierPlayoffGames = widget.existingGames.where((game) =>
+    final tierPlayoffGames = _cachedGames.where((game) =>
       game.notes?.contains('Tier') == true ||
-      game.roundName?.contains('Elimination') == true
+      game.notes?.contains('Elimination') == true ||
+      game.roundName?.contains('Elimination') == true ||
+      game.roundName?.contains('Final') == true ||
+      game.roundName?.contains('Semi') == true ||
+      game.roundName?.contains('Quarter') == true
     ).toList();
+
+    print('🎯 Found ${tierPlayoffGames.length} playoff games in cache');
+    // Debug: Log details about each playoff game
+    for (final game in tierPlayoffGames) {
+      print('🏆 Playoff Game: ${game.roundName} - ${game.notes} - Teams: ${game.team1Id} vs ${game.team2Id}');
+    }
 
     return Card(
       child: Padding(
@@ -763,9 +1016,26 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Tiered Playoff Brackets',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Tiered Playoff Brackets',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                if (tierPlayoffGames.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: _clearAllPlayoffGames,
+                        icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                        tooltip: 'Clear All Playoff Games',
+                      ),
+                      _buildViewToggle(),
+                    ],
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 16),
             if (tierPlayoffGames.isEmpty) ...[
@@ -783,8 +1053,14 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
                 label: Text(_isGeneratingSchedule ? 'Generating...' : 'Generate Tiered Playoffs'),
               ),
             ] else ...[
-              Text('${tierPlayoffGames.length} playoff games scheduled'),
-              // Add detailed playoff bracket display here
+              _buildTierPlayoffStats(tierPlayoffGames),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 400,
+                child: _isScheduleView 
+                    ? _buildTierPlayoffScheduleView(tierPlayoffGames)
+                    : _buildTierPlayoffListView(tierPlayoffGames),
+              ),
             ],
           ],
         ),
@@ -954,11 +1230,513 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
     }
   }
 
+  Future<void> _regenerateSchedule() async {
+    final confirmed = await _showConfirmationDialog(
+      'Regenerate Schedule',
+      'This will delete all existing scheduled games and recreate them with optimized court assignments. Continue?',
+    );
+    
+    if (!confirmed) return;
+    
+    setState(() => _isGeneratingSchedule = true);
+    
+    try {
+      // Delete existing group stage games (only scheduled ones)
+      final groupStageGames = _cachedGames.where((game) =>
+        (game.notes?.contains('Group Stage') == true ||
+         game.roundName?.contains('Group') == true) &&
+        game.status == GameStatus.scheduled
+      ).toList();
+      
+      for (final game in groupStageGames) {
+        await _gameRepository.deleteGame(game.id);
+      }
+      
+      // Regenerate with new optimized scheduling
+      await _generateGroupStageSchedule();
+      
+      _showSuccessSnackBar('Schedule regenerated with optimized court assignments!');
+    } catch (e) {
+      _showErrorSnackBar('Failed to regenerate schedule: $e');
+    } finally {
+      setState(() => _isGeneratingSchedule = false);
+    }
+  }
+
+  Future<void> _clearAllGames() async {
+    final confirmed = await _showConfirmationDialog(
+      'Clear All Games',
+      'This will permanently delete ALL group stage games including results and progress. This action cannot be undone. Continue?',
+    );
+    
+    if (!confirmed) return;
+    
+    // Show additional warning for games with results
+    final gamesWithResults = _cachedGames.where((game) =>
+      (game.notes?.contains('Group Stage') == true ||
+       game.roundName?.contains('Group') == true) &&
+      (game.status == GameStatus.completed || game.status == GameStatus.inProgress)
+    ).toList();
+    
+    if (gamesWithResults.isNotEmpty) {
+      final doubleConfirmed = await _showConfirmationDialog(
+        'Final Warning',
+        '${gamesWithResults.length} games have results or are in progress. All data will be lost permanently. Are you absolutely sure?',
+      );
+      
+      if (!doubleConfirmed) return;
+    }
+    
+    setState(() => _isGeneratingSchedule = true);
+    
+    try {
+      // Delete all group stage games
+      final groupStageGames = _cachedGames.where((game) =>
+        game.notes?.contains('Group Stage') == true ||
+        game.roundName?.contains('Group') == true
+      ).toList();
+      
+      for (final game in groupStageGames) {
+        await _gameRepository.deleteGame(game.id);
+      }
+      
+      _showSuccessSnackBar('All group stage games cleared successfully!');
+      widget.onScheduleUpdated();
+    } catch (e) {
+      _showErrorSnackBar('Failed to clear games: $e');
+    } finally {
+      setState(() => _isGeneratingSchedule = false);
+    }
+  }
+
+  Future<void> _clearAllPlayoffGames() async {
+    final confirmed = await _showConfirmationDialog(
+      'Clear All Playoff Games',
+      'This will permanently delete ALL tiered playoff games including results and progress. This action cannot be undone. Continue?',
+    );
+    
+    if (!confirmed) return;
+    
+    // Show additional warning for games with results
+    final playoffGamesWithResults = _cachedGames.where((game) =>
+      (game.notes?.contains('Tier') == true ||
+       game.notes?.contains('Elimination') == true ||
+       game.roundName?.contains('Elimination') == true ||
+       game.roundName?.contains('Final') == true ||
+       game.roundName?.contains('Semi') == true ||
+       game.roundName?.contains('Quarter') == true) &&
+      (game.status == GameStatus.completed || game.status == GameStatus.inProgress)
+    ).toList();
+    
+    if (playoffGamesWithResults.isNotEmpty) {
+      final doubleConfirmed = await _showConfirmationDialog(
+        'Final Warning',
+        '${playoffGamesWithResults.length} playoff games have results or are in progress. All data will be lost permanently. Are you absolutely sure?',
+      );
+      
+      if (!doubleConfirmed) return;
+    }
+    
+    setState(() => _isGeneratingSchedule = true);
+    
+    try {
+      // Delete all playoff games
+      final playoffGames = _cachedGames.where((game) =>
+        game.notes?.contains('Tier') == true ||
+        game.notes?.contains('Elimination') == true ||
+        game.roundName?.contains('Elimination') == true ||
+        game.roundName?.contains('Final') == true ||
+        game.roundName?.contains('Semi') == true ||
+        game.roundName?.contains('Quarter') == true
+      ).toList();
+      
+      print('🗑️ Deleting ${playoffGames.length} playoff games...');
+      for (final game in playoffGames) {
+        print('🗑️ Deleting game: ${game.roundName} - ${game.notes}');
+        await _gameRepository.deleteGame(game.id);
+      }
+      
+      // Refresh the local game state
+      await _refreshLocalGameState();
+      
+      _showSuccessSnackBar('All playoff games cleared successfully!');
+    } catch (e) {
+      _showErrorSnackBar('Failed to clear playoff games: $e');
+    } finally {
+      setState(() => _isGeneratingSchedule = false);
+    }
+  }
+
+  void _handleScheduleAction(String action, bool hasInProgressOrCompleted) {
+    switch (action) {
+      case 'regenerate':
+        if (!hasInProgressOrCompleted) {
+          _regenerateSchedule();
+        }
+        break;
+      case 'refresh':
+        _refreshSchedule();
+        break;
+      case 'clear':
+        _clearAllGames();
+        break;
+      case 'export':
+        _exportSchedule();
+        break;
+    }
+  }
+
+  void _refreshSchedule() {
+    _showSuccessSnackBar('Schedule refreshed!');
+    widget.onScheduleUpdated();
+  }
+
+  void _exportSchedule() {
+    // Placeholder for export functionality
+    _showSuccessSnackBar('Export functionality coming soon!');
+  }
+
+  Widget _buildGameActionButtons(GameModel game) {
+    switch (game.status) {
+      case GameStatus.scheduled:
+        return Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _startGame(game),
+                icon: const Icon(Icons.play_arrow, size: 16),
+                label: const Text('Start Game'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _updateGameScore(game),
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text('Enter Score'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.blue,
+                ),
+              ),
+            ),
+          ],
+        );
+      
+      case GameStatus.inProgress:
+        return Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _updateGameScore(game),
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text('Update Score'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _completeGame(game),
+                icon: const Icon(Icons.check, size: 16),
+                label: const Text('Complete'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      
+      case GameStatus.completed:
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _updateGameScore(game),
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text('Edit Score'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.green,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _resetGameToScheduled(game),
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Reset'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey,
+                ),
+              ),
+            ),
+          ],
+        );
+      
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Future<void> _refreshLocalGameState() async {
+    try {
+      print('🔄 Fetching updated games from database...');
+      // Refresh games locally without calling parent
+      final updatedGames = await _gameRepository.getTournamentGames(widget.tournamentId);
+      print('📥 Fetched ${updatedGames.length} games from database');
+      
+      setState(() {
+        _cachedGames = updatedGames;
+      });
+      print('✅ Local game state updated successfully');
+    } catch (e) {
+      print('❌ Error refreshing game state: $e');
+      // Fallback to parent refresh if local refresh fails
+      widget.onScheduleUpdated();
+    }
+  }
+
+  Future<void> _startGame(GameModel game) async {
+    try {
+      await _gameRepository.startGame(game.id);
+      _showSuccessSnackBar('Game started!');
+      // Refresh local state instead of calling parent callback immediately
+      await _refreshLocalGameState();
+    } catch (e) {
+      _showErrorSnackBar('Failed to start game: $e');
+    }
+  }
+
+  Future<void> _updateGameScore(GameModel game) async {
+    final team1 = widget.teams.firstWhere((t) => t.id == game.team1Id);
+    final team2 = widget.teams.firstWhere((t) => t.id == game.team2Id);
+    
+    final result = await _showScoreDialog(
+      team1: team1,
+      team2: team2,
+      currentScore1: game.team1Score,
+      currentScore2: game.team2Score,
+    );
+    
+    if (result != null) {
+      try {
+        final team1Score = result['team1Score'] as int;
+        final team2Score = result['team2Score'] as int;
+        
+        // Determine winner
+        String? winnerId;
+        if (team1Score != team2Score) {
+          winnerId = team1Score > team2Score ? game.team1Id : game.team2Id;
+        }
+        
+        // Update scores in database directly
+        await _updateScoreInDatabase(
+          gameId: game.id,
+          team1Score: team1Score,
+          team2Score: team2Score,
+          winnerId: winnerId,
+        );
+        
+        // Auto-start game if it was scheduled
+        if (game.status == GameStatus.scheduled) {
+          await _gameRepository.updateGame(gameId: game.id, status: GameStatus.inProgress);
+        }
+        
+        _showSuccessSnackBar('Score updated!');
+        await _refreshLocalGameState();
+      } catch (e) {
+        _showErrorSnackBar('Failed to update score: $e');
+      }
+    }
+  }
+
+  Future<void> _completeGame(GameModel game) async {
+    // Check if game has scores before completing
+    if (game.team1Score == null || game.team2Score == null) {
+      final shouldAddScore = await _showConfirmationDialog(
+        'Missing Score',
+        'This game has no score recorded. Do you want to add a score before completing?',
+      );
+      
+      if (shouldAddScore) {
+        await _updateGameScore(game);
+        return;
+      }
+    }
+    
+    try {
+      // Use the completeGame method with current scores
+      final team1Score = game.team1Score ?? 0;
+      final team2Score = game.team2Score ?? 0;
+      String? winnerId;
+      if (team1Score != team2Score) {
+        winnerId = team1Score > team2Score ? game.team1Id : game.team2Id;
+      }
+      
+      await _gameRepository.completeGame(
+        gameId: game.id,
+        team1Score: team1Score,
+        team2Score: team2Score,
+        winnerId: winnerId,
+      );
+      
+      _showSuccessSnackBar('Game completed!');
+      await _refreshLocalGameState();
+    } catch (e) {
+      _showErrorSnackBar('Failed to complete game: $e');
+    }
+  }
+
+  Future<void> _resetGameToScheduled(GameModel game) async {
+    final confirmed = await _showConfirmationDialog(
+      'Reset Game',
+      'This will reset the game to scheduled status and clear the score. Continue?',
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await _gameRepository.updateGame(gameId: game.id, status: GameStatus.scheduled);
+      await _updateScoreInDatabase(
+        gameId: game.id,
+        team1Score: 0,
+        team2Score: 0,
+        winnerId: null,
+        clearScore: true,
+      );
+      _showSuccessSnackBar('Game reset to scheduled!');
+      await _refreshLocalGameState();
+    } catch (e) {
+      _showErrorSnackBar('Failed to reset game: $e');
+    }
+  }
+
+  Future<void> _updateScoreInDatabase({
+    required String gameId,
+    required int team1Score,
+    required int team2Score,
+    String? winnerId,
+    bool clearScore = false,
+  }) async {
+    final supabase = Supabase.instance.client;
+    
+    final updateData = <String, dynamic>{
+      'team1_score': clearScore ? null : team1Score,
+      'team2_score': clearScore ? null : team2Score,
+      'winner_id': winnerId,
+    };
+    
+    await supabase
+        .from('games')
+        .update(updateData)
+        .eq('id', gameId);
+  }
+
+  Future<Map<String, int>?> _showScoreDialog({
+    required TeamModel team1,
+    required TeamModel team2,
+    int? currentScore1,
+    int? currentScore2,
+  }) async {
+    final score1Controller = TextEditingController(text: currentScore1?.toString() ?? '');
+    final score2Controller = TextEditingController(text: currentScore2?.toString() ?? '');
+    
+    return await showDialog<Map<String, int>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Update Score'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        team1.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: score1Controller,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: '0',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Text(
+                  'VS',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        team2.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: score2Controller,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: '0',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final score1 = int.tryParse(score1Controller.text) ?? 0;
+              final score2 = int.tryParse(score2Controller.text) ?? 0;
+              Navigator.of(context).pop({
+                'team1Score': score1,
+                'team2Score': score2,
+              });
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _calculateTierAssignments() async {
     setState(() => _isGeneratingSchedule = true);
     
     try {
-      final completedGames = widget.existingGames.where((g) => g.status == GameStatus.completed).toList();
+      final completedGames = _cachedGames.where((g) => g.status == GameStatus.completed).toList();
       
       final tierAssignments = TieredTournamentService.calculateTierAssignments(
         tournamentId: widget.tournamentId,
@@ -1009,6 +1787,24 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
         timeBetweenGamesMinutes: scheduleParams['timeBetweenGames'] as int,
       );
       
+      print('🔄 Brackets generated, refreshing game state...');
+      print('📊 Games before refresh: ${_cachedGames.length}');
+      
+      // Refresh local game state to show newly generated playoff games
+      await _refreshLocalGameState();
+      
+      print('📊 Games after refresh: ${_cachedGames.length}');
+      print('🏁 Current phase before update: $_currentPhase');
+      
+      // Update phase to playoffs and switch to playoffs tab
+      setState(() {
+        _currentPhase = TieredTournamentPhase.tieredPlayoffs;
+        // Switch to the playoffs tab (index 3)
+        _phaseTabController.animateTo(3);
+      });
+      
+      print('🏁 Phase updated to: $_currentPhase');
+      
       _showSuccessSnackBar('Tiered playoff brackets generated!');
       widget.onScheduleUpdated();
     } catch (e) {
@@ -1020,8 +1816,8 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
 
   Future<Map<String, dynamic>?> _showScheduleGenerationDialog() async {
     DateTime startDate = DateTime.now().add(const Duration(days: 1));
-    int gameDuration = 60;
-    int timeBetweenGames = 15;
+    final gameDurationController = TextEditingController(text: '60');
+    final timeBetweenGamesController = TextEditingController(text: '15');
     
     return showDialog<Map<String, dynamic>>(
       context: context,
@@ -1030,7 +1826,9 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
           title: const Text('Schedule Parameters'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Start Date
               ListTile(
                 leading: const Icon(Icons.calendar_today),
                 title: const Text('Start Date'),
@@ -1047,27 +1845,83 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
                   }
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.timer),
-                title: Text('Game Duration: ${gameDuration}min'),
-                subtitle: Slider(
-                  value: gameDuration.toDouble(),
-                  min: 30,
-                  max: 180,
-                  divisions: 15,
-                  onChanged: (value) => setDialogState(() => gameDuration = value.round()),
-                ),
+              const SizedBox(height: 16),
+              
+              // Game Duration Input
+              Row(
+                children: [
+                  const Icon(Icons.timer, color: Colors.grey),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Game Duration',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 80,
+                              child: TextField(
+                                controller: gameDurationController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('minutes'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              ListTile(
-                leading: const Icon(Icons.pause),
-                title: Text('Break Between Games: ${timeBetweenGames}min'),
-                subtitle: Slider(
-                  value: timeBetweenGames.toDouble(),
-                  min: 5,
-                  max: 60,
-                  divisions: 11,
-                  onChanged: (value) => setDialogState(() => timeBetweenGames = value.round()),
-                ),
+              const SizedBox(height: 16),
+              
+              // Break Between Games Input
+              Row(
+                children: [
+                  const Icon(Icons.pause, color: Colors.grey),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Break Between Games',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 80,
+                              child: TextField(
+                                controller: timeBetweenGamesController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('minutes'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1077,11 +1931,37 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () => Navigator.of(context).pop({
-                'startDate': startDate,
-                'gameDuration': gameDuration,
-                'timeBetweenGames': timeBetweenGames,
-              }),
+              onPressed: () {
+                final gameDuration = int.tryParse(gameDurationController.text) ?? 60;
+                final timeBetweenGames = int.tryParse(timeBetweenGamesController.text) ?? 15;
+                
+                // Validate input ranges
+                if (gameDuration < 10 || gameDuration > 300) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Game duration must be between 10 and 300 minutes'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                if (timeBetweenGames < 0 || timeBetweenGames > 120) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Break time must be between 0 and 120 minutes'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                Navigator.of(context).pop({
+                  'startDate': startDate,
+                  'gameDuration': gameDuration,
+                  'timeBetweenGames': timeBetweenGames,
+                });
+              },
               child: const Text('Generate'),
             ),
           ],
@@ -1126,6 +2006,1549 @@ class _TieredScheduleManagerState extends State<TieredScheduleManager>
         backgroundColor: Colors.red,
       ),
     );
+  }
+
+  void _showGroupStageGamesDialog(List<GameModel> games) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Group Stage Schedule'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: games.isEmpty
+              ? const Center(child: Text('No games scheduled'))
+              : ListView.builder(
+                  itemCount: games.length,
+                  itemBuilder: (context, index) {
+                    final game = games[index];
+                    final team1 = widget.teams.firstWhere((t) => t.id == game.team1Id, orElse: () => TeamModel(
+                      id: '', name: 'Unknown', tournamentId: '', createdAt: DateTime.now(), updatedAt: DateTime.now()));
+                    final team2 = widget.teams.firstWhere((t) => t.id == game.team2Id, orElse: () => TeamModel(
+                      id: '', name: 'Unknown', tournamentId: '', createdAt: DateTime.now(), updatedAt: DateTime.now()));
+                    final resource = widget.resources.firstWhere((r) => r.id == game.resourceId, orElse: () => TournamentResourceModel(
+                      id: '', tournamentId: '', name: 'TBD', type: ''));
+
+                    return Card(
+                      child: ListTile(
+                        title: Text('${team1.name} vs ${team2.name}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${game.scheduledDate?.day}/${game.scheduledDate?.month} at ${game.scheduledTime ?? 'TBD'}'),
+                            Text('${resource.name} - ${game.roundName ?? 'Group Stage'}'),
+                          ],
+                        ),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(game.status),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            game.status.name.toUpperCase(),
+                            style: const TextStyle(color: Colors.white, fontSize: 10),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGamesSummary(List<GameModel> games) {
+    final gamesByGroup = <String, List<GameModel>>{};
+    for (final game in games) {
+      final groupName = game.notes?.split(' - ').first ?? 'Unknown Group';
+      gamesByGroup.putIfAbsent(groupName, () => []).add(game);
+    }
+
+    return Column(
+      children: gamesByGroup.entries.map((entry) {
+        final groupName = entry.key;
+        final groupGames = entry.value;
+        final completedGames = groupGames.where((g) => g.status == GameStatus.completed).length;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  groupName,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+              Text(
+                '$completedGames/${groupGames.length} completed',
+                style: TextStyle(
+                  color: completedGames == groupGames.length ? Colors.green : Colors.orange,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildViewToggle() {
+    return SegmentedButton<String>(
+      segments: const [
+        ButtonSegment(
+          value: 'groups',
+          label: Text('Groups'),
+          icon: Icon(Icons.group_work, size: 16),
+        ),
+        ButtonSegment(
+          value: 'list',
+          label: Text('List'),
+          icon: Icon(Icons.list, size: 16),
+        ),
+        ButtonSegment(
+          value: 'schedule',
+          label: Text('Schedule'),
+          icon: Icon(Icons.calendar_view_day, size: 16),
+        ),
+      ],
+      selected: {_isScheduleView ? 'schedule' : (_isGroupView ? 'groups' : 'list')},
+      onSelectionChanged: (Set<String> newSelection) {
+        setState(() {
+          if (newSelection.first == 'schedule') {
+            _isScheduleView = true;
+            _isGroupView = false;
+          } else if (newSelection.first == 'groups') {
+            _isScheduleView = false;
+            _isGroupView = true;
+          } else {
+            _isScheduleView = false;
+            _isGroupView = false;
+          }
+        });
+      },
+      style: SegmentedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+      ),
+    );
+  }
+
+  Widget _buildGroupStageStats(List<GameModel> games) {
+    final completed = games.where((g) => g.status == GameStatus.completed).length;
+    final inProgress = games.where((g) => g.status == GameStatus.inProgress).length;
+    final scheduled = games.where((g) => g.status == GameStatus.scheduled).length;
+
+    return Row(
+      children: [
+        _buildStatBadge('Total', games.length, Colors.blue),
+        const SizedBox(width: 16),
+        _buildStatBadge('Scheduled', scheduled, Colors.orange),
+        const SizedBox(width: 16),
+        _buildStatBadge('In Progress', inProgress, Colors.green),
+        const SizedBox(width: 16),
+        _buildStatBadge('Completed', completed, Colors.purple),
+      ],
+    );
+  }
+
+  Widget _buildScheduleManagementControls(List<GameModel> games) {
+    final hasInProgressOrCompleted = games.any((g) => 
+      g.status == GameStatus.inProgress || g.status == GameStatus.completed);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.settings, color: Colors.grey[600], size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Schedule Management',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          if (hasInProgressOrCompleted) ...[
+            // Warning when games have started
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning, color: Colors.orange[600], size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Some games have started or completed. Clearing will delete all progress.',
+                      style: TextStyle(
+                        color: Colors.orange[700],
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: PopupMenuButton<String>(
+                    enabled: !_isGeneratingSchedule,
+                    offset: const Offset(0, 40),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_isGeneratingSchedule) ...[
+                            const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Processing...'),
+                          ] else ...[
+                            const Icon(Icons.more_horiz, color: Colors.blue),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Schedule Actions',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: _isGeneratingSchedule ? Colors.grey : Colors.blue,
+                          ),
+                        ],
+                      ),
+                    ),
+                    itemBuilder: (context) => [
+                      if (!hasInProgressOrCompleted) ...[
+                        PopupMenuItem<String>(
+                          value: 'regenerate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.refresh, color: Colors.blue[600], size: 20),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Regenerate Schedule',
+                                      style: TextStyle(fontWeight: FontWeight.w500),
+                                    ),
+                                    Text(
+                                      'Apply optimized court assignments',
+                                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                      ],
+                      PopupMenuItem<String>(
+                        value: 'refresh',
+                        child: Row(
+                          children: [
+                            Icon(Icons.sync, color: Colors.green[600], size: 20),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Refresh View',
+                                    style: TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  Text(
+                                    'Reload schedule from database',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem<String>(
+                        value: 'clear',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_forever, color: Colors.red[600], size: 20),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Delete All Games',
+                                    style: TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  Text(
+                                    'Clear all games and results',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem<String>(
+                        value: 'export',
+                        child: Row(
+                          children: [
+                            Icon(Icons.download, color: Colors.purple[600], size: 20),
+                            const SizedBox(width: 12),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Export Schedule',
+                                    style: TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  Text(
+                                    'Download as CSV or PDF',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) => _handleScheduleAction(value, hasInProgressOrCompleted),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 8),
+          Text(
+            hasInProgressOrCompleted 
+                ? 'Tip: Clear all games first to regenerate with new optimized court assignments'
+                : 'Regenerate to apply the new optimized court scheduling',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatBadge(String label, int value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value.toString(),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGroupStageListView(List<GameModel> games) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          _buildGamesSummary(games),
+          const SizedBox(height: 16),
+          ...games.map((game) => _buildGroupStageGameCard(game)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupStageGroupView(List<GameModel> games) {
+    // Group games by their tournament group
+    final gamesByGroup = <String, List<GameModel>>{};
+    final groupColors = <String, Color>{};
+    final colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.red,
+      Colors.teal,
+      Colors.pink,
+      Colors.indigo,
+    ];
+    
+    for (final game in games) {
+      final groupName = game.notes?.split(' - ').last ?? 'Unknown Group';
+      gamesByGroup.putIfAbsent(groupName, () => []).add(game);
+      
+      // Assign a color to each group if not already assigned
+      if (!groupColors.containsKey(groupName)) {
+        final colorIndex = groupColors.length % colors.length;
+        groupColors[groupName] = colors[colorIndex];
+      }
+    }
+
+    // Sort groups alphabetically
+    final sortedGroups = gamesByGroup.keys.toList()..sort();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: sortedGroups.map((groupName) {
+          final groupGames = gamesByGroup[groupName]!;
+          final groupColor = groupColors[groupName]!;
+          final completedGames = groupGames.where((g) => g.status == GameStatus.completed).length;
+          final inProgressGames = groupGames.where((g) => g.status == GameStatus.inProgress).length;
+          
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: groupColor.withOpacity(0.3), width: 2),
+            ),
+            child: Column(
+              children: [
+                // Group Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: groupColor.withOpacity(0.1),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(10),
+                      topRight: Radius.circular(10),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: groupColor.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.group_work,
+                          color: groupColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              groupName,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: groupColor,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${groupGames.length} games • $completedGames completed',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Progress indicator
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: completedGames == groupGames.length 
+                              ? Colors.green.withOpacity(0.2)
+                              : inProgressGames > 0
+                                  ? Colors.orange.withOpacity(0.2)
+                                  : Colors.grey.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          completedGames == groupGames.length 
+                              ? 'Complete'
+                              : inProgressGames > 0
+                                  ? 'In Progress'
+                                  : 'Scheduled',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: completedGames == groupGames.length 
+                                ? Colors.green[700]
+                                : inProgressGames > 0
+                                    ? Colors.orange[700]
+                                    : Colors.grey[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Group Games
+                ...groupGames.map((game) => Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: _buildGroupGameCard(game, groupColor),
+                )),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildGroupGameCard(GameModel game, Color groupColor) {
+    final team1 = widget.teams.firstWhere((t) => t.id == game.team1Id, 
+        orElse: () => TeamModel(id: '', name: 'Unknown', tournamentId: '', 
+                               createdAt: DateTime.now(), updatedAt: DateTime.now()));
+    final team2 = widget.teams.firstWhere((t) => t.id == game.team2Id, 
+        orElse: () => TeamModel(id: '', name: 'Unknown', tournamentId: '', 
+                               createdAt: DateTime.now(), updatedAt: DateTime.now()));
+    final resource = widget.resources.firstWhere((r) => r.id == game.resourceId, 
+        orElse: () => TournamentResourceModel(id: '', tournamentId: '', name: 'TBD', type: ''));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          // Match Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        team1.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: groupColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'vs',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: groupColor,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        team2.name,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      resource.name,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Icon(Icons.schedule, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      game.scheduledDate != null && game.scheduledTime != null
+                          ? '${game.scheduledDate!.day}/${game.scheduledDate!.month} at ${game.scheduledTime}'
+                          : 'TBD',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+                if (game.hasResults) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      game.resultSummary!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Status Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _getStatusColor(game.status),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              game.status.name.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupStageScheduleView(List<GameModel> games) {
+    // Group games by date and time
+    final Map<String, Map<String, List<GameModel>>> schedule = {};
+    
+    for (final game in games) {
+      if (game.scheduledDate != null && game.scheduledTime != null) {
+        final dateKey = _formatDate(game.scheduledDate!);
+        final timeKey = game.scheduledTime!;
+        
+        schedule.putIfAbsent(dateKey, () => {});
+        schedule[dateKey]!.putIfAbsent(timeKey, () => []);
+        schedule[dateKey]![timeKey]!.add(game);
+      }
+    }
+
+    if (schedule.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.schedule, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No scheduled games',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text('Games need dates and times to appear in schedule view'),
+          ],
+        ),
+      );
+    }
+
+    // Sort dates chronologically
+    final sortedDates = schedule.keys.toList()..sort((a, b) {
+      final dateA = _parseDate(a);
+      final dateB = _parseDate(b);
+      return dateA.compareTo(dateB);
+    });
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: sortedDates.map((dateKey) {
+          return _buildDateSection(dateKey, schedule[dateKey]!);
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildDateSection(String date, Map<String, List<GameModel>> timeSlots) {
+    final sortedTimes = timeSlots.keys.toList()..sort();
+    final totalGames = timeSlots.values.fold(0, (sum, games) => sum + games.length);
+    final completedGames = timeSlots.values
+        .expand((games) => games)
+        .where((game) => game.status == GameStatus.completed)
+        .length;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 20),
+      elevation: 2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date Header with Progress
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  Theme.of(context).primaryColor.withOpacity(0.1),
+                  Theme.of(context).primaryColor.withOpacity(0.05),
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.calendar_today, 
+                    color: Theme.of(context).primaryColor, 
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        date,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$totalGames games • $completedGames completed',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Progress indicator
+                if (totalGames > 0) ...[
+                  CircularProgressIndicator(
+                    value: completedGames / totalGames,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      completedGames == totalGames ? Colors.green : Theme.of(context).primaryColor,
+                    ),
+                    strokeWidth: 3,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${(completedGames / totalGames * 100).toInt()}%',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: completedGames == totalGames ? Colors.green : Theme.of(context).primaryColor,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Time Slots
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: sortedTimes.map((time) {
+                return _buildTimeSlot(time, timeSlots[time]!);
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeSlot(String time, List<GameModel> games) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Time Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: games.isEmpty ? Colors.grey.withOpacity(0.05) : Colors.blue.withOpacity(0.05),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: games.isEmpty ? Colors.grey.withOpacity(0.2) : Colors.blue.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    games.isEmpty ? Icons.schedule_outlined : Icons.sports_soccer,
+                    size: 16,
+                    color: games.isEmpty ? Colors.grey[600] : Colors.blue[700],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    time,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: games.isEmpty ? Colors.grey[600] : Colors.blue[700],
+                    ),
+                  ),
+                ),
+                if (games.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      '${games.length} ${games.length == 1 ? 'game' : 'games'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Games Content
+          if (games.isEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.schedule_outlined,
+                      size: 32,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No games scheduled',
+                      style: TextStyle(
+                        color: Colors.grey[600], 
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: games.map((game) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildCompactGroupStageGameCard(game),
+                )).toList(),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupStageGameCard(GameModel game) {
+    final team1 = widget.teams.firstWhere((t) => t.id == game.team1Id, 
+        orElse: () => TeamModel(id: '', name: 'Unknown', tournamentId: '', 
+                               createdAt: DateTime.now(), updatedAt: DateTime.now()));
+    final team2 = widget.teams.firstWhere((t) => t.id == game.team2Id, 
+        orElse: () => TeamModel(id: '', name: 'Unknown', tournamentId: '', 
+                               createdAt: DateTime.now(), updatedAt: DateTime.now()));
+    final resource = widget.resources.firstWhere((r) => r.id == game.resourceId, 
+        orElse: () => TournamentResourceModel(id: '', tournamentId: '', name: 'TBD', type: ''));
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${team1.name} vs ${team2.name}',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(game.status),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    game.status.name.toUpperCase(),
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            
+            // Score Display (if game has results)
+            if (game.hasResults) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Column(
+                      children: [
+                        Text(
+                          team1.name,
+                          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${game.team1Score ?? 0}',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 40),
+                    const Text(
+                      'VS',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(width: 40),
+                    Column(
+                      children: [
+                        Text(
+                          team2.name,
+                          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${game.team2Score ?? 0}',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            
+            Row(
+              children: [
+                Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  '${game.scheduledDate?.day}/${game.scheduledDate?.month} at ${game.scheduledTime ?? 'TBD'}',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.place, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  resource.name,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            if (game.notes?.isNotEmpty == true) ...[
+              const SizedBox(height: 4),
+              Text(
+                game.notes!,
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              ),
+            ],
+            
+            // Game Action Buttons
+            const SizedBox(height: 12),
+            _buildGameActionButtons(game),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactGroupStageGameCard(GameModel game) {
+    final team1 = widget.teams.firstWhere((t) => t.id == game.team1Id, 
+        orElse: () => TeamModel(id: '', name: 'Unknown', tournamentId: '', 
+                               createdAt: DateTime.now(), updatedAt: DateTime.now()));
+    final team2 = widget.teams.firstWhere((t) => t.id == game.team2Id, 
+        orElse: () => TeamModel(id: '', name: 'Unknown', tournamentId: '', 
+                               createdAt: DateTime.now(), updatedAt: DateTime.now()));
+    final resource = widget.resources.firstWhere((r) => r.id == game.resourceId, 
+        orElse: () => TournamentResourceModel(id: '', tournamentId: '', name: 'TBD', type: ''));
+
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${team1.name} vs ${team2.name}',
+                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+                ),
+              ),
+              Text(
+                resource.name,
+                style: TextStyle(color: Colors.grey[600], fontSize: 11),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(game.status),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  game.status.name.toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontSize: 8),
+                ),
+              ),
+            ],
+          ),
+          
+          // Score display for compact cards
+          if (game.hasResults) ...[
+            const SizedBox(height: 4),
+            Text(
+              '${game.team1Score ?? 0} - ${game.team2Score ?? 0}',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                color: Colors.green,
+              ),
+            ),
+          ],
+          
+          // Compact action buttons
+          const SizedBox(height: 4),
+          _buildCompactActionButtons(game),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactActionButtons(GameModel game) {
+    switch (game.status) {
+      case GameStatus.scheduled:
+        return Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _startGame(game),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('Start', style: TextStyle(fontSize: 10)),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _updateGameScore(game),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.blue,
+                  minimumSize: const Size(0, 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('Score', style: TextStyle(fontSize: 10)),
+              ),
+            ),
+          ],
+        );
+      
+      case GameStatus.inProgress:
+        return Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _updateGameScore(game),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('Update', style: TextStyle(fontSize: 10)),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _completeGame(game),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('Complete', style: TextStyle(fontSize: 10)),
+              ),
+            ),
+          ],
+        );
+      
+      case GameStatus.completed:
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _updateGameScore(game),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.green,
+                  minimumSize: const Size(0, 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('Edit', style: TextStyle(fontSize: 10)),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _resetGameToScheduled(game),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey,
+                  minimumSize: const Size(0, 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('Reset', style: TextStyle(fontSize: 10)),
+              ),
+            ),
+          ],
+        );
+      
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  DateTime _parseDate(String dateString) {
+    final parts = dateString.split('/');
+    return DateTime(
+      int.parse(parts[2]), // year
+      int.parse(parts[1]), // month
+      int.parse(parts[0]), // day
+    );
+  }
+
+  Color _getStatusColor(GameStatus status) {
+    switch (status) {
+      case GameStatus.scheduled:
+        return Colors.blue;
+      case GameStatus.inProgress:
+        return Colors.orange;
+      case GameStatus.completed:
+        return Colors.green;
+      case GameStatus.cancelled:
+        return Colors.red;
+      case GameStatus.postponed:
+        return Colors.grey;
+      case GameStatus.forfeit:
+        return Colors.purple;
+    }
+  }
+
+  Widget _buildTierPlayoffStats(List<GameModel> tierPlayoffGames) {
+    final scheduledGames = tierPlayoffGames.where((g) => g.status == GameStatus.scheduled).length;
+    final inProgressGames = tierPlayoffGames.where((g) => g.status == GameStatus.inProgress).length;
+    final completedGames = tierPlayoffGames.where((g) => g.status == GameStatus.completed).length;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatChip(
+            label: 'Total',
+            value: tierPlayoffGames.length.toString(),
+            color: Colors.blue,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatChip(
+            label: 'Scheduled',
+            value: scheduledGames.toString(),
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatChip(
+            label: 'In Progress',
+            value: inProgressGames.toString(),
+            color: Colors.orange,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildStatChip(
+            label: 'Completed',
+            value: completedGames.toString(),
+            color: Colors.green,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatChip({required String label, required String value, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: color,
+              fontSize: 16,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTierPlayoffScheduleView(List<GameModel> tierPlayoffGames) {
+    // Group games by date
+    final gamesByDate = <String, List<GameModel>>{};
+    for (final game in tierPlayoffGames) {
+      if (game.scheduledDate != null) {
+        final dateKey = _formatDate(game.scheduledDate!);
+        gamesByDate.putIfAbsent(dateKey, () => []).add(game);
+      }
+    }
+
+    final sortedDates = gamesByDate.keys.toList()..sort((a, b) => _parseDate(a).compareTo(_parseDate(b)));
+
+    return ListView.builder(
+      itemCount: sortedDates.length,
+      itemBuilder: (context, index) {
+        final dateString = sortedDates[index];
+        final games = gamesByDate[dateString]!;
+        final completedGames = games.where((g) => g.status == GameStatus.completed).length;
+        final progressPercentage = games.isEmpty ? 0.0 : completedGames / games.length;
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        dateString,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${games.length} games',
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                LinearProgressIndicator(
+                  value: progressPercentage,
+                  backgroundColor: Colors.grey.shade300,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    progressPercentage == 1.0 ? Colors.green : Colors.orange,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${(progressPercentage * 100).round()}% completed ($completedGames/${games.length})',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 16),
+                ...games.map((game) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildCompactGroupStageGameCard(game),
+                )),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTierPlayoffListView(List<GameModel> tierPlayoffGames) {
+    // Group games by tier based on notes
+    final gamesByTier = <String, List<GameModel>>{};
+    for (final game in tierPlayoffGames) {
+      String tier = 'Unknown';
+      if (game.notes?.contains('Pro') == true) {
+        tier = 'Pro Tier';
+      } else if (game.notes?.contains('Intermediate') == true) {
+        tier = 'Intermediate Tier';
+      } else if (game.notes?.contains('Novice') == true) {
+        tier = 'Novice Tier';
+      }
+      gamesByTier.putIfAbsent(tier, () => []).add(game);
+    }
+
+    return ListView(
+      children: gamesByTier.entries.map((entry) {
+        final tierName = entry.key;
+        final games = entry.value;
+        
+        return Card(
+          margin: const EdgeInsets.only(bottom: 16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _getTierIcon(tierName),
+                      color: _getTierColor(tierName),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      tierName,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _getTierColor(tierName),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getTierColor(tierName).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _getTierColor(tierName).withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        '${games.length} games',
+                        style: TextStyle(
+                          color: _getTierColor(tierName),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ...games.map((game) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildGroupStageGameCard(game),
+                )),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  IconData _getTierIcon(String tierName) {
+    switch (tierName) {
+      case 'Pro Tier':
+        return Icons.emoji_events;
+      case 'Intermediate Tier':
+        return Icons.trending_up;
+      case 'Novice Tier':
+        return Icons.school;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  Color _getTierColor(String tierName) {
+    switch (tierName) {
+      case 'Pro Tier':
+        return Colors.amber;
+      case 'Intermediate Tier':
+        return Colors.blue;
+      case 'Novice Tier':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
   }
 }
 

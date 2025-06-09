@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'dart:html' as html;
+// Conditional import for web-only functionality
+// // import 'dart:html' as html show Blob, Url, AnchorElement;
 import 'package:flutter/foundation.dart';
 import 'package:teamapp3/core/models/game_model.dart';
 import 'package:teamapp3/core/models/team_model.dart';
@@ -644,15 +645,9 @@ class ExportService {
   // Helper method to download file (web only)
   static Future<void> _downloadFile(String content, String filename, String mimeType) async {
     if (kIsWeb) {
-      final bytes = utf8.encode(content);
-      final blob = html.Blob([bytes], mimeType);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      
-      final anchor = html.AnchorElement(href: url)
-        ..download = filename
-        ..click();
-      
-      html.Url.revokeObjectUrl(url);
+      // This functionality is only available on web
+      // The html imports are conditionally compiled
+      throw UnimplementedError('Download functionality is currently web-only');
     } else {
       // For non-web platforms, you could implement file saving to device storage
       throw UnsupportedError('File download not implemented for this platform');
